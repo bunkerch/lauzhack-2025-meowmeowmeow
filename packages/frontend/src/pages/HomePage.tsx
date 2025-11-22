@@ -1,69 +1,80 @@
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Shield, QrCode, Lock } from 'lucide-react';
+import { ShoppingCart, Shield, QrCode, Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 function HomePage() {
   return (
-    <div className="animate-[fadeIn_0.5s_ease-in]">
-      <section className="text-center p-16 bg-white/95 rounded-3xl shadow-xl mb-12">
-        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-[#667eea] to-[#764ba2] bg-clip-text text-transparent">
-          Welcome to CFF Tickets ZK
+    <div className="animate-[fadeIn_0.5s_ease-in] space-y-16">
+      {/* Hero Section */}
+      <section className="text-center py-20 px-6">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6 text-sm font-medium">
+          <Sparkles size={16} className="text-primary" />
+          <span>Privacy-First Ticketing Platform</span>
+        </div>
+        
+        <h1 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-primary via-purple-400 to-primary bg-clip-text text-transparent leading-tight">
+          CFF Tickets ZK
         </h1>
-        <p className="text-2xl text-gray-600 mb-4">
+        
+        <p className="text-xl text-muted-foreground mb-4 max-w-2xl mx-auto">
           Buy train tickets with zero-knowledge proof technology
         </p>
-        <p className="text-lg text-gray-500 mb-8 max-w-2xl mx-auto">
+        
+        <p className="text-base text-muted-foreground/80 mb-10 max-w-xl mx-auto">
           Your privacy is our priority. Purchase tickets without storing any personal data.
         </p>
-        <Button asChild size="lg" className="rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-lg px-8 py-6">
+        
+        <Button asChild size="lg" className="rounded-full h-12 px-8 text-base font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all group">
           <Link to="/purchase" className="flex items-center gap-2">
             <ShoppingCart size={20} />
             Buy Tickets Now
+            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </Link>
         </Button>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <Card className="bg-white/95 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
-          <CardHeader className="text-center">
-            <div className="flex justify-center text-[#667eea] mb-4">
-              <Shield size={48} />
+      {/* Features Grid */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="glass-strong border-primary/10 hover:border-primary/30 transition-all group">
+          <CardHeader>
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+              <Shield size={24} className="text-primary" />
             </div>
-            <CardTitle>Zero-Knowledge Proofs</CardTitle>
+            <CardTitle className="text-xl">Zero-Knowledge Proofs</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed text-sm">
               Your tickets are protected using advanced cryptographic proofs that verify
               validity without revealing personal information.
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/95 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
-          <CardHeader className="text-center">
-            <div className="flex justify-center text-[#667eea] mb-4">
-              <Lock size={48} />
+        <Card className="glass-strong border-primary/10 hover:border-primary/30 transition-all group">
+          <CardHeader>
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+              <Lock size={24} className="text-primary" />
             </div>
-            <CardTitle>Privacy First</CardTitle>
+            <CardTitle className="text-xl">Privacy First</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed text-sm">
               No personal data is stored in our system. Only cryptographic proofs that
               guarantee your ticket's authenticity.
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/95 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
-          <CardHeader className="text-center">
-            <div className="flex justify-center text-[#667eea] mb-4">
-              <QrCode size={48} />
+        <Card className="glass-strong border-primary/10 hover:border-primary/30 transition-all group">
+          <CardHeader>
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+              <QrCode size={24} className="text-primary" />
             </div>
-            <CardTitle>Easy Verification</CardTitle>
+            <CardTitle className="text-xl">Easy Verification</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed text-sm">
               Scanners can instantly verify your ticket using QR codes while keeping
               your personal information private.
             </p>
@@ -71,40 +82,30 @@ function HomePage() {
         </Card>
       </section>
 
-      <Card className="bg-white/95 shadow-xl p-12">
-        <CardHeader className="text-center">
-          <CardTitle className="text-4xl mb-12">How It Works</CardTitle>
+      {/* How It Works */}
+      <Card className="glass-strong border-primary/10">
+        <CardHeader className="text-center pb-12">
+          <CardTitle className="text-3xl font-bold">How It Works</CardTitle>
+          <p className="text-muted-foreground mt-2">Four simple steps to secure your journey</p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white text-2xl font-bold flex items-center justify-center mx-auto mb-4 shadow-lg">
-                1
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-6">
+            {[
+              { num: 1, title: 'Select Your Route', desc: 'Choose your origin and destination from available routes' },
+              { num: 2, title: 'Purchase Ticket', desc: 'Complete a simple payment confirmation (POC)' },
+              { num: 3, title: 'Receive ZK Proof', desc: 'Get your ticket with embedded zero-knowledge proof' },
+              { num: 4, title: 'Travel Securely', desc: 'Present your QR code for verification during travel' },
+            ].map((step) => (
+              <div key={step.num} className="text-center group">
+                <div className="relative mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-2xl font-bold flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                    {step.num}
+                  </div>
+                </div>
+                <h4 className="font-semibold mb-2">{step.title}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
               </div>
-              <h4 className="text-gray-800 mb-2 text-xl font-semibold">Select Your Route</h4>
-              <p className="text-gray-600 leading-relaxed">Choose your origin and destination from available routes</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white text-2xl font-bold flex items-center justify-center mx-auto mb-4 shadow-lg">
-                2
-              </div>
-              <h4 className="text-gray-800 mb-2 text-xl font-semibold">Purchase Ticket</h4>
-              <p className="text-gray-600 leading-relaxed">Complete a simple payment confirmation (POC)</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white text-2xl font-bold flex items-center justify-center mx-auto mb-4 shadow-lg">
-                3
-              </div>
-              <h4 className="text-gray-800 mb-2 text-xl font-semibold">Receive ZK Proof</h4>
-              <p className="text-gray-600 leading-relaxed">Get your ticket with embedded zero-knowledge proof</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white text-2xl font-bold flex items-center justify-center mx-auto mb-4 shadow-lg">
-                4
-              </div>
-              <h4 className="text-gray-800 mb-2 text-xl font-semibold">Travel Securely</h4>
-              <p className="text-gray-600 leading-relaxed">Present your QR code for verification during travel</p>
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>

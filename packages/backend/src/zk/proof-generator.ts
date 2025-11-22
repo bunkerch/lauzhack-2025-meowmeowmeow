@@ -56,76 +56,42 @@ export async function generateTicketProof(input: TicketInput) {
   const wasmExists = fs.existsSync(CIRCUIT_WASM);
   const zkeyExists = fs.existsSync(PROVING_KEY);
 
-  if (wasmExists && zkeyExists) {
-    // REAL SNARKJS PROOF GENERATION
-    console.log('🔐 Generating REAL ZK proof with snarkjs...');
-    
-    try {
-      const { proof, publicSignals: generatedSignals } = await snarkjs.groth16.fullProve(
-        circuitInputs,
-        CIRCUIT_WASM,
-        PROVING_KEY
-      );
-
-      console.log('✅ Real ZK proof generated successfully!');
-
-      // Return real proof
-      return {
-        proof: {
-          pi_a: [...proof.pi_a, "1"],
-          pi_b: [
-            [proof.pi_b[0][1], proof.pi_b[0][0]],
-            [proof.pi_b[1][1], proof.pi_b[1][0]],
-            ["1", "0"]
-          ],
-          pi_c: [...proof.pi_c, "1"],
-          protocol: "groth16",
-          curve: "bn128"
-        },
-        publicSignals: generatedSignals
-      };
-    } catch (error) {
-      console.error('❌ Error generating real proof:', error);
-      console.log('⚠️  Falling back to POC mock proof');
-      // Fall through to mock proof generation
-    }
-  } else {
-    console.log('⚠️  Circuit files not found, using POC mock proof');
-    console.log(`   WASM: ${CIRCUIT_WASM} - ${wasmExists ? 'EXISTS' : 'MISSING'}`);
-    console.log(`   ZKEY: ${PROVING_KEY} - ${zkeyExists ? 'EXISTS' : 'MISSING'}`);
-    console.log('');
-    console.log('📝 To generate real proofs:');
-    console.log('   1. Create circom circuit in circuits/ticket.circom');
-    console.log('   2. Compile: circom ticket.circom --r1cs --wasm --sym');
-    console.log('   3. Generate proving key: snarkjs groth16 setup ...');
-    console.log('   4. Place ticket.wasm and ticket.zkey in circuits/');
+  if (!wasmExists || !zkeyExists) {
+    throw new Error(
+      `Circuit files not found!\n` +
+      `  WASM: ${CIRCUIT_WASM} - ${wasmExists ? 'EXISTS' : 'MISSING'}\n` +
+      `  ZKEY: ${PROVING_KEY} - ${zkeyExists ? 'EXISTS' : 'MISSING'}\n\n` +
+      `Please compile the circuit first:\n` +
+      `  cd circuits && ./setup.sh`
+    );
   }
 
-  // POC MOCK PROOF (only used when circuit files don't exist)
-  // This maintains the correct structure but isn't cryptographically generated
-  console.log('🔧 Generating POC mock proof (structure-valid but not cryptographically proven)');
+  // REAL SNARKJS PROOF GENERATION
+  console.log('🔐 Generating REAL ZK proof with snarkjs...');
   
-  const proof = {
-    pi_a: [
-      "0x" + BigInt(commitment).toString(16),
-      "0x" + BigInt(ticketIdHash).toString(16),
-      "0x1"
-    ],
-    pi_b: [
-      ["0x2", "0x3"],
-      ["0x4", "0x5"],
-      ["0x1", "0x0"]
-    ],
-    pi_c: [
-      "0x" + BigInt(commitment).toString(16),
-      "0x6",
-      "0x1"
-    ],
-    protocol: "groth16",
-    curve: "bn128"
-  };
+  const { proof, publicSignals: generatedSignals } = await snarkjs.groth16.fullProve(
+    circuitInputs,
+    CIRCUIT_WASM,
+    PROVING_KEY
+  );
 
-  return { proof, publicSignals };
+  console.log('✅ Real ZK proof generated successfully!');
+
+  // Return real proof
+  return {
+    proof: {
+      pi_a: [...proof.pi_a, "1"],
+      pi_b: [
+        [proof.pi_b[0][1], proof.pi_b[0][0]],
+        [proof.pi_b[1][1], proof.pi_b[1][0]],
+        ["1", "0"]
+      ],
+      pi_c: [...proof.pi_c, "1"],
+      protocol: "groth16",
+      curve: "bn128"
+    },
+    publicSignals: generatedSignals
+  };
 }
 
 /**

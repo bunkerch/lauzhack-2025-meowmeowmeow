@@ -2,6 +2,7 @@ import { Router, type Router as ExpressRouter } from 'express';
 import { db } from '../database/db';
 import { routes } from '../database/schema';
 import { eq } from 'drizzle-orm';
+import { RouteIdParamSchema } from '../schemas/validation';
 
 export const routeRoutes: ExpressRouter = Router();
 
@@ -19,10 +20,20 @@ routeRoutes.get('/', async (req, res) => {
 // Get specific route by ID
 routeRoutes.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+    // Validate route ID parameter
+    const validationResult = RouteIdParamSchema.safeParse(req.params.id);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: 'Invalid route ID format',
+        details: validationResult.error.format()
+      });
+    }
+
+    const id = validationResult.data;
     const route = await db.select()
       .from(routes)
-      .where(eq(routes.id, parseInt(id)))
+      .where(eq(routes.id, id))
       .limit(1);
     
     if (route.length === 0) {

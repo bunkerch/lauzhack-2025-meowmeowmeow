@@ -6,18 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-
-interface ScanResult {
-  valid: boolean;
-  message: string;
-  verificationMethod?: 'offline-browser' | 'offline' | 'online' | 'offline-fallback';
-  warning?: string;
-  ticket?: {
-    route: string;
-    type?: string;
-    validUntil: string;
-  };
-}
+import { QRCodeDataSchema, ScanResultSchema, type ScanResult } from '../schemas/validation';
 
 type VerificationMode = 'offline-browser' | 'online';
 
@@ -39,9 +28,9 @@ function ScannerPage() {
 
     try {
       // Parse QR code data
-      let ticketData;
+      let parsedData;
       try {
-        ticketData = JSON.parse(qrData.trim());
+        parsedData = JSON.parse(qrData.trim());
       } catch (parseError) {
         setResult({
           valid: false,
@@ -51,15 +40,19 @@ function ScannerPage() {
         return;
       }
 
-      // Validate QR code structure
-      if (!ticketData.ticketId || !ticketData.proof || !ticketData.publicSignals) {
+      // Validate QR code structure with Zod
+      const validationResult = QRCodeDataSchema.safeParse(parsedData);
+      if (!validationResult.success) {
+        console.error('QR code validation failed:', validationResult.error);
         setResult({
           valid: false,
-          message: 'QR code missing required data (ticketId, proof, or publicSignals)',
+          message: 'Invalid QR code structure. Missing or invalid required fields.',
         });
         setScanning(false);
         return;
       }
+
+      const ticketData = validationResult.data;
 
       // OFFLINE-BROWSER MODE: Verify entirely in the browser
       if (verificationMode === 'offline-browser') {
@@ -103,14 +96,37 @@ function ScannerPage() {
         }),
       });
 
-      const data = await response.json();
-      setResult(data);
+      const responseData = await response.json();
+      
+      // Validate response data with Zod
+      const resultValidation = ScanResultSchema.safeParse(responseData);
+      if (!resultValidation.success) {
+        console.error('Response validation failed:', resultValidation.error);
+        setResult({
+          valid: false,
+          message: 'Invalid response from server',
+        });
+      } else {
+        setResult(resultValidation.data);
+      }
     } catch (err) {
       // Network error - automatically use offline verification
       console.log('❌ Network error - falling back to offline-browser verification');
       
       try {
-        const ticketData = JSON.parse(qrData.trim());
+        const parsedData = JSON.parse(qrData.trim());
+        const validationResult = QRCodeDataSchema.safeParse(parsedData);
+        
+        if (!validationResult.success) {
+          setResult({
+            valid: false,
+            message: 'Invalid QR code data',
+          });
+          setScanning(false);
+          return;
+        }
+
+        const ticketData = validationResult.data;
         const offlineResult = await verifyTicketOffline(ticketData);
         
         setResult({
@@ -149,23 +165,26 @@ function ScannerPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto animate-[fadeIn_0.5s_ease-in]">
-      <Card className="bg-white/95 rounded-3xl shadow-xl p-12 mb-8">
-        <CardHeader className="text-center text-[#667eea] pb-8">
-          <Scan size={48} className="mx-auto mb-4" />
-          <CardTitle className="text-3xl text-gray-800 mb-2">Ticket Scanner</CardTitle>
+    <div className="max-w-4xl mx-auto animate-[fadeIn_0.5s_ease-in] space-y-8">
+      <Card className="glass-strong border-primary/10">
+        <CardHeader className="text-center pb-6">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Scan size={28} className="text-primary" />
+          </div>
+          <CardTitle className="text-3xl font-bold mb-2">Ticket Scanner</CardTitle>
           <CardDescription className="text-base">
             Verify tickets using zero-knowledge proof verification
           </CardDescription>
           
-          <div className="mt-4 flex justify-center">
+          <div className="mt-6 flex justify-center">
             <Button
               onClick={toggleMode}
               variant="outline"
-              className={`rounded-full ${
+              size="sm"
+              className={`rounded-full transition-all ${
                 verificationMode === 'offline-browser' 
-                  ? 'border-purple-500 text-purple-600 hover:bg-purple-500 hover:text-white' 
-                  : 'border-[#667eea] text-[#667eea] hover:bg-[#667eea] hover:text-white'
+                  ? 'border-purple-500/50 text-purple-400 hover:bg-purple-500/20' 
+                  : 'border-primary/50 text-primary hover:bg-primary/20'
               }`}
             >
               {verificationMode === 'offline-browser' ? (
@@ -185,9 +204,9 @@ function ScannerPage() {
 
         {!result ? (
           <CardContent>
-            <form onSubmit={handleScan} className="space-y-6 max-w-2xl mx-auto">
-              <div className="space-y-2">
-                <Label htmlFor="qrData">Paste QR Code Content</Label>
+            <form onSubmit={handleScan} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="qrData" className="text-sm font-medium">Paste QR Code Content</Label>
                 <Textarea
                   id="qrData"
                   value={qrData}
@@ -196,14 +215,14 @@ function ScannerPage() {
                   disabled={scanning}
                   autoFocus
                   rows={6}
-                  className="font-mono"
+                  className="font-mono text-xs resize-none"
                 />
               </div>
 
               <Button 
                 type="submit" 
                 size="lg"
-                className="w-full rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-lg mb-8"
+                className="w-full rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40"
                 disabled={scanning || !qrData.trim()}
               >
                 {scanning ? (
@@ -219,18 +238,21 @@ function ScannerPage() {
                 )}
               </Button>
 
-              <div className="bg-[#667eea]/5 p-6 rounded-xl border-l-4 border-[#667eea]">
-                <p className="font-semibold text-gray-800 mb-2">ℹ️ How to use:</p>
-                <ol className="list-decimal list-inside space-y-1 text-gray-600">
+              <div className="bg-primary/5 border border-primary/10 p-5 rounded-xl space-y-3">
+                <p className="font-semibold text-sm flex items-center gap-2">
+                  <span className="text-primary">ℹ️</span>
+                  How to use:
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground ml-2">
                   <li>Scan the QR code from the passenger's ticket</li>
                   <li>The QR code contains: ticket ID, ZK proof, and validity data</li>
-                  <li>Choose your verification mode below</li>
+                  <li>Choose your verification mode above</li>
                 </ol>
-                <div className="mt-4">
+                <div className="mt-4 pt-4 border-t border-border">
                   {verificationMode === 'offline-browser' ? (
-                    <div className="bg-purple-50 border-l-4 border-purple-500 text-purple-900 p-4 rounded">
-                      <p className="font-semibold mb-2">⚡ Offline (Browser) Mode - FULLY OFFLINE</p>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
+                    <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-lg space-y-2">
+                      <p className="font-semibold text-sm text-purple-400">⚡ Offline (Browser) Mode - FULLY OFFLINE</p>
+                      <ul className="space-y-1 text-xs text-muted-foreground ml-4">
                         <li>✅ Verifies ZK proof entirely in your browser</li>
                         <li>✅ NO backend communication whatsoever</li>
                         <li>✅ Works completely offline</li>
@@ -239,9 +261,9 @@ function ScannerPage() {
                       </ul>
                     </div>
                   ) : (
-                    <div className="bg-green-50 border-l-4 border-green-500 text-green-900 p-4 rounded">
-                      <p className="font-semibold mb-2">🌐 Online Mode - Full Verification</p>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
+                    <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-lg space-y-2">
+                      <p className="font-semibold text-sm text-green-400">🌐 Online Mode - Full Verification</p>
+                      <ul className="space-y-1 text-xs text-muted-foreground ml-4">
                         <li>✅ Verifies ZK proof on server</li>
                         <li>✅ Checks if ticket was already used</li>
                         <li>✅ Gets full route information</li>
@@ -256,83 +278,85 @@ function ScannerPage() {
           </CardContent>
         ) : (
           <CardContent>
-            <div className={`text-center p-8 rounded-2xl animate-[scaleIn_0.3s_ease-out] ${
-              result.valid ? 'bg-green-50' : 'bg-red-50'
+            <div className={`text-center p-8 rounded-xl animate-[scaleIn_0.3s_ease-out] ${
+              result.valid ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'
             }`}>
-              <div className={`mb-4 ${result.valid ? 'text-green-500' : 'text-red-500'}`}>
+              <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center ${
+                result.valid ? 'bg-green-500/20' : 'bg-red-500/20'
+              }`}>
                 {result.valid ? (
-                  <CheckCircle size={64} className="mx-auto" />
+                  <CheckCircle size={32} className="text-green-400" />
                 ) : (
-                  <XCircle size={64} className="mx-auto" />
+                  <XCircle size={32} className="text-red-400" />
                 )}
               </div>
 
-              <h2 className={`text-3xl font-bold mb-4 ${
-                result.valid ? 'text-green-600' : 'text-red-600'
+              <h2 className={`text-2xl font-bold mb-3 ${
+                result.valid ? 'text-green-400' : 'text-red-400'
               }`}>
                 {result.valid ? 'Valid Ticket ✓' : 'Invalid Ticket ✗'}
               </h2>
 
-              <p className="text-xl text-gray-600 mb-4">{result.message}</p>
+              <p className="text-base text-muted-foreground mb-4">{result.message}</p>
 
               {result.verificationMethod && (
                 <Badge
-                  variant={result.verificationMethod === 'offline-browser' ? 'secondary' : 'default'}
+                  variant="outline"
                   className={`mb-4 ${
                     result.verificationMethod === 'offline-browser'
-                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                      : ''
+                      ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+                      : 'bg-primary/10 border-primary/30 text-primary'
                   }`}
                 >
                   {result.verificationMethod === 'offline-browser' && (
                     <>
-                      <Zap size={16} className="mr-2" />
-                      <span>OFFLINE (BROWSER)</span>
+                      <Zap size={14} className="mr-2" />
+                      <span className="text-xs font-semibold">OFFLINE (BROWSER)</span>
                     </>
                   )}
                   {result.verificationMethod === 'online' && (
                     <>
-                      <Wifi size={16} className="mr-2" />
-                      <span>ONLINE</span>
+                      <Wifi size={14} className="mr-2" />
+                      <span className="text-xs font-semibold">ONLINE</span>
                     </>
                   )}
                   {(result.verificationMethod === 'offline' || result.verificationMethod === 'offline-fallback') && (
                     <>
-                      <WifiOff size={16} className="mr-2" />
-                      <span>{result.verificationMethod.toUpperCase()}</span>
+                      <WifiOff size={14} className="mr-2" />
+                      <span className="text-xs font-semibold">{result.verificationMethod.toUpperCase()}</span>
                     </>
                   )}
                 </Badge>
               )}
 
               {result.warning && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-yellow-900 text-left mb-6">
-                  ⚠️ {result.warning}
+                <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-lg text-sm text-left mb-6">
+                  <p className="text-yellow-400 font-medium">⚠️ {result.warning}</p>
                 </div>
               )}
 
               {result.valid && result.ticket && (
-                <div className="bg-white p-6 rounded-xl mb-8 text-left">
-                  <div className="flex justify-between py-3 border-b border-gray-200">
-                    <span className="font-semibold text-gray-600">Route:</span>
-                    <span className="text-gray-800">{result.ticket.route}</span>
+                <div className="bg-muted/30 border border-border p-5 rounded-lg mb-6 text-left space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Route:</span>
+                    <span className="font-medium">{result.ticket.route}</span>
                   </div>
                   {result.ticket.type && (
-                    <div className="flex justify-between py-3 border-b border-gray-200">
-                      <span className="font-semibold text-gray-600">Type:</span>
-                      <span className="text-gray-800">{result.ticket.type}</span>
+                    <div className="flex justify-between text-sm border-t border-border pt-3">
+                      <span className="text-muted-foreground">Type:</span>
+                      <span className="font-medium">{result.ticket.type}</span>
                     </div>
                   )}
-                  <div className="flex justify-between py-3">
-                    <span className="font-semibold text-gray-600">Valid Until:</span>
-                    <span className="text-gray-800">
+                  <div className="flex justify-between text-sm border-t border-border pt-3">
+                    <span className="text-muted-foreground">Valid Until:</span>
+                    <span className="font-medium">
                       {new Date(result.ticket.validUntil).toLocaleString()}
                     </span>
                   </div>
                 </div>
               )}
 
-              <Button onClick={handleReset} size="lg" className="rounded-full hover:shadow-lg hover:-translate-y-0.5 transition-all">
+              <Button onClick={handleReset} size="lg" className="rounded-xl shadow-lg shadow-primary/25">
                 Scan Another Ticket
               </Button>
             </div>
@@ -340,31 +364,25 @@ function ScannerPage() {
         )}
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-white/95 p-6 rounded-2xl text-center shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl">⚡ Browser Verification</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 text-sm">Verify proofs entirely in browser - zero backend calls</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/95 p-6 rounded-2xl text-center shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl">🔒 Cryptographically Secure</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 text-sm">Tamper-proof ZK proofs verified locally</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/95 p-6 rounded-2xl text-center shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl">📡 Works Offline</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600 text-sm">No network required for verification</p>
-          </CardContent>
-        </Card>
+      {/* Feature Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { icon: '⚡', title: 'Browser Verification', desc: 'Verify proofs entirely in browser - zero backend calls' },
+          { icon: '🔒', title: 'Cryptographically Secure', desc: 'Tamper-proof ZK proofs verified locally' },
+          { icon: '📡', title: 'Works Offline', desc: 'No network required for verification' },
+        ].map((feature, idx) => (
+          <Card key={idx} className="glass border-primary/5 hover:border-primary/20 transition-all">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <span className="text-lg">{feature.icon}</span>
+                {feature.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground leading-relaxed">{feature.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

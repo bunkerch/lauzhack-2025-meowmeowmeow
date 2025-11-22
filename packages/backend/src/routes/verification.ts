@@ -3,33 +3,31 @@ import { db } from '../database/db';
 import { routes, tickets } from '../database/schema';
 import { eq } from 'drizzle-orm';
 import { verifyTicketProof } from '../zk/proof-verifier';
+import {
+  VerifyTicketRequestSchema,
+  ScanTicketRequestSchema,
+  VerifyOfflineRequestSchema,
+  type VerifyTicketRequest,
+  type ScanTicketRequest,
+  type VerifyOfflineRequest
+} from '../schemas/validation';
 
 export const verificationRoutes: ExpressRouter = Router();
-
-interface VerifyTicketRequest {
-  ticketId: string;
-  proof: any;
-  publicSignals: any[];
-}
-
-interface ScanTicketRequest {
-  ticketId: string;
-  proof: any;
-  publicSignals: any[];
-  validFrom: string;
-  validUntil: string;
-  routeId: number;
-  offline?: boolean; // Flag for offline mode
-}
 
 // Full verification endpoint (marks ticket as used)
 verificationRoutes.post('/', async (req, res) => {
   try {
-    const { ticketId, proof, publicSignals }: VerifyTicketRequest = req.body;
-
-    if (!ticketId || !proof || !publicSignals) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    // Validate request body with Zod
+    const validationResult = VerifyTicketRequestSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: 'Invalid request data',
+        details: validationResult.error.format()
+      });
     }
+
+    const { ticketId, proof, publicSignals } = validationResult.data;
 
     // Get ticket from database using Drizzle
     const result = await db.select({
@@ -117,6 +115,16 @@ verificationRoutes.post('/', async (req, res) => {
 // Scanner endpoint - verifies QR code content (supports offline mode)
 verificationRoutes.post('/scan', async (req, res) => {
   try {
+    // Validate request body with Zod
+    const validationResult = ScanTicketRequestSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: 'Invalid request data',
+        details: validationResult.error.format()
+      });
+    }
+
     const { 
       ticketId, 
       proof, 
@@ -125,15 +133,7 @@ verificationRoutes.post('/scan', async (req, res) => {
       validUntil, 
       routeId,
       offline 
-    }: ScanTicketRequest = req.body;
-
-    // Validate required fields for offline verification
-    if (!ticketId || !proof || !publicSignals || !validFrom || !validUntil || !routeId) {
-      return res.status(400).json({ 
-        error: 'Missing required fields for verification',
-        required: ['ticketId', 'proof', 'publicSignals', 'validFrom', 'validUntil', 'routeId']
-      });
-    }
+    } = validationResult.data;
 
     // STEP 1: Verify the cryptographic proof (OFFLINE)
     const isProofValid = await verifyTicketProof(proof, publicSignals);
@@ -280,19 +280,22 @@ verificationRoutes.post('/scan', async (req, res) => {
 // Offline verification endpoint - pure cryptographic verification
 verificationRoutes.post('/verify-offline', async (req, res) => {
   try {
+    // Validate request body with Zod
+    const validationResult = VerifyOfflineRequestSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: 'Invalid request data',
+        details: validationResult.error.format()
+      });
+    }
+
     const { 
       proof, 
       publicSignals, 
       validFrom, 
       validUntil 
-    } = req.body;
-
-    if (!proof || !publicSignals || !validFrom || !validUntil) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        required: ['proof', 'publicSignals', 'validFrom', 'validUntil']
-      });
-    }
+    } = validationResult.data;
 
     // Verify cryptographic proof
     const isProofValid = await verifyTicketProof(proof, publicSignals);

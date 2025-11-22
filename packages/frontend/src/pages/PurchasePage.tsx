@@ -1,19 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-interface Route {
-  id: number;
-  origin: string;
-  destination: string;
-  price: string;
-  duration_minutes: number;
-}
+import { RouteSchema, PurchaseResponseSchema, type Route } from '../schemas/validation';
+import { z } from 'zod';
 
 function PurchasePage() {
   const navigate = useNavigate();
@@ -34,7 +28,15 @@ function PurchasePage() {
       const response = await fetch('/api/routes');
       if (!response.ok) throw new Error('Failed to fetch routes');
       const data = await response.json();
-      setRoutes(data);
+      
+      // Validate routes data with Zod
+      const validationResult = z.array(RouteSchema).safeParse(data);
+      if (!validationResult.success) {
+        console.error('Routes validation failed:', validationResult.error);
+        throw new Error('Invalid routes data received from server');
+      }
+      
+      setRoutes(validationResult.data);
     } catch (err) {
       setError('Failed to load routes. Please try again.');
       console.error(err);
@@ -69,7 +71,16 @@ function PurchasePage() {
 
       if (!response.ok) throw new Error('Failed to purchase ticket');
 
-      const data = await response.json();
+      const responseData = await response.json();
+      
+      // Validate purchase response with Zod
+      const validationResult = PurchaseResponseSchema.safeParse(responseData);
+      if (!validationResult.success) {
+        console.error('Purchase response validation failed:', validationResult.error);
+        throw new Error('Invalid response from server');
+      }
+      
+      const data = validationResult.data;
       
       // Simulate payment confirmation
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -99,50 +110,51 @@ function PurchasePage() {
 
   if (loadingRoutes) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-white">
-        <Loader2 className="animate-spin" size={48} />
-        <p className="mt-4 text-xl">Loading routes...</p>
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <Loader2 className="animate-spin text-primary" size={48} />
+        <p className="mt-4 text-lg text-muted-foreground">Loading routes...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-200px)] animate-[fadeIn_0.5s_ease-in]">
-      <Card className="bg-white/95 p-12 rounded-3xl shadow-xl max-w-2xl w-full">
-        <CardHeader>
-          <CardTitle className="text-3xl">Purchase Train Ticket</CardTitle>
-          <CardDescription className="text-base">
-            🔒 Your privacy is protected with zero-knowledge proofs
+    <div className="flex justify-center items-center animate-[fadeIn_0.5s_ease-in]">
+      <Card className="glass-strong border-primary/10 max-w-2xl w-full">
+        <CardHeader className="space-y-2 pb-6">
+          <CardTitle className="text-3xl font-bold">Purchase Train Ticket</CardTitle>
+          <CardDescription className="text-base flex items-center gap-2">
+            <Lock size={16} className="text-primary" />
+            Your privacy is protected with zero-knowledge proofs
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handlePurchase} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="route">Select Route</Label>
+            <div className="space-y-3">
+              <Label htmlFor="route" className="text-sm font-medium">Select Route</Label>
               <Select
                 value={selectedRoute?.toString() || ''}
                 onValueChange={(value) => setSelectedRoute(Number(value))}
               >
-                <SelectTrigger id="route">
+                <SelectTrigger id="route" className="h-11">
                   <SelectValue placeholder="Choose a route..." />
                 </SelectTrigger>
                 <SelectContent>
                   {routes.map((route) => (
                     <SelectItem key={route.id} value={route.id.toString()}>
-                      {route.origin} → {route.destination} (CHF {route.price}, {route.duration_minutes} min)
+                      {route.origin} → {route.destination} (CHF {route.price}, {route.durationMinutes} min)
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="ticketType">Ticket Type</Label>
+            <div className="space-y-3">
+              <Label htmlFor="ticketType" className="text-sm font-medium">Ticket Type</Label>
               <Select
                 value={ticketType}
                 onValueChange={(value) => setTicketType(value as any)}
               >
-                <SelectTrigger id="ticketType">
+                <SelectTrigger id="ticketType" className="h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -153,8 +165,8 @@ function PurchasePage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="travelDate">Travel Date</Label>
+            <div className="space-y-3">
+              <Label htmlFor="travelDate" className="text-sm font-medium">Travel Date</Label>
               <Input
                 type="date"
                 id="travelDate"
@@ -162,24 +174,25 @@ function PurchasePage() {
                 onChange={(e) => setTravelDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
                 required
+                className="h-11"
               />
             </div>
 
-            <div className="flex justify-between items-center p-6 bg-gradient-to-r from-[#667eea]/10 to-[#764ba2]/10 rounded-xl text-lg font-semibold">
-              <span>Total Price:</span>
-              <span className="text-[#667eea] text-2xl">CHF {getTicketPrice()}</span>
+            <div className="flex justify-between items-center p-5 bg-primary/5 border border-primary/10 rounded-xl">
+              <span className="text-sm font-medium text-muted-foreground">Total Price</span>
+              <span className="text-3xl font-bold text-primary">CHF {getTicketPrice()}</span>
             </div>
 
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded text-red-800">
-                {error}
+              <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg text-sm">
+                <p className="text-destructive font-medium">{error}</p>
               </div>
             )}
 
             <Button
               type="submit"
               size="lg"
-              className="w-full rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-lg"
+              className="w-full rounded-xl h-12 text-base font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40"
               disabled={loading || !selectedRoute}
             >
               {loading ? (
@@ -195,9 +208,12 @@ function PurchasePage() {
               )}
             </Button>
 
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-sm">
-              <p className="font-semibold text-gray-800 mb-1">ℹ️ POC Payment System</p>
-              <p className="text-gray-600">
+            <div className="bg-muted/30 border border-border p-4 rounded-lg text-sm space-y-1">
+              <p className="font-semibold flex items-center gap-2">
+                <span className="text-primary">ℹ️</span>
+                POC Payment System
+              </p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
                 This is a proof-of-concept. No real payment is processed. 
                 Click "Confirm Purchase" to simulate the payment.
               </p>

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { Train } from 'lucide-react';
+import { Train, ShieldCheck } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import PurchasePage from './pages/PurchasePage';
 import TicketPage from './pages/TicketPage';
@@ -9,27 +9,29 @@ function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen flex flex-col">
-        <nav className="bg-white/95 backdrop-blur-md shadow-md sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
-            <Link to="/" className="flex items-center gap-3 text-[#667eea] text-2xl font-bold hover:scale-105 transition-transform no-underline">
-              <Train size={32} />
+        <nav className="glass-strong sticky top-0 z-50 border-b">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <Link to="/" className="flex items-center gap-3 text-foreground text-xl font-semibold hover:text-primary transition-colors no-underline group">
+              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <Train size={24} className="text-primary" />
+              </div>
               <span>CFF Tickets ZK</span>
             </Link>
-            <div className="flex gap-8">
-              <Link to="/" className="text-gray-800 font-medium hover:text-[#667eea] transition-colors no-underline">
+            <div className="flex gap-1">
+              <Link to="/" className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all no-underline">
                 Home
               </Link>
-              <Link to="/purchase" className="text-gray-800 font-medium hover:text-[#667eea] transition-colors no-underline">
+              <Link to="/purchase" className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all no-underline">
                 Buy Tickets
               </Link>
-              <Link to="/scanner" className="text-gray-800 font-medium hover:text-[#667eea] transition-colors no-underline">
+              <Link to="/scanner" className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all no-underline">
                 Scanner
               </Link>
             </div>
           </div>
         </nav>
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-8 py-8">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12">
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/purchase" element={<PurchasePage />} />
@@ -38,9 +40,16 @@ function App() {
           </Routes>
         </main>
 
-        <footer className="bg-black/20 text-white text-center py-8 mt-auto">
-          <p className="my-1 font-semibold text-lg">🔒 Powered by Zero-Knowledge Proofs</p>
-          <p className="my-1">No personal data stored • Privacy-first • SBB CFF FFS POC</p>
+        <footer className="glass border-t mt-auto">
+          <div className="max-w-7xl mx-auto px-6 py-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <ShieldCheck size={20} className="text-primary" />
+              <p className="text-sm font-semibold">Powered by Zero-Knowledge Proofs</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              No personal data stored • Privacy-first • SBB CFF FFS POC
+            </p>
+          </div>
         </footer>
       </div>
     </BrowserRouter>

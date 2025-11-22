@@ -4,24 +4,29 @@ import { db } from '../database/db';
 import { routes, tickets } from '../database/schema';
 import { eq } from 'drizzle-orm';
 import { generateTicketProof } from '../zk/proof-generator';
+import { 
+  PurchaseTicketRequestSchema, 
+  TicketIdParamSchema,
+  type PurchaseTicketRequest 
+} from '../schemas/validation';
+import { z } from 'zod';
 
 export const ticketRoutes: ExpressRouter = Router();
-
-interface PurchaseTicketRequest {
-  routeId: number;
-  ticketType: 'single' | 'day' | 'return';
-  travelDate: string;
-}
 
 // Purchase a ticket
 ticketRoutes.post('/purchase', async (req, res) => {
   try {
-    const { routeId, ticketType, travelDate }: PurchaseTicketRequest = req.body;
-
-    // Validate input
-    if (!routeId || !ticketType || !travelDate) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    // Validate request body with Zod
+    const validationResult = PurchaseTicketRequestSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: 'Invalid request data',
+        details: validationResult.error.format()
+      });
     }
+
+    const { routeId, ticketType, travelDate } = validationResult.data;
 
     // Get route details using Drizzle
     const route = await db.select()
@@ -97,7 +102,17 @@ ticketRoutes.post('/purchase', async (req, res) => {
 // Get ticket by ID
 ticketRoutes.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
+    // Validate ticket ID parameter
+    const validationResult = TicketIdParamSchema.safeParse(req.params.id);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: 'Invalid ticket ID format',
+        details: validationResult.error.format()
+      });
+    }
+
+    const id = validationResult.data;
     
     // Get ticket with route using Drizzle join
     const result = await db.select({
