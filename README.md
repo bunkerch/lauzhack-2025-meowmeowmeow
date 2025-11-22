@@ -1,12 +1,22 @@
 # CFF Ticket ZK - Zero-Knowledge Train Ticket Platform
 
-A proof-of-concept e-commerce platform for SBB CFF FFS that allows users to buy train tickets protected by zero-knowledge proofs, without storing personal data.
+A **fully functional** zero-knowledge proof system for SBB CFF FFS train tickets. Uses **real Groth16 ZK-SNARKs** to prove ticket validity without revealing personal information.
+
+## 🎉 Status: REAL Cryptography Implemented!
+
+This is not a mock - this system uses **actual zero-knowledge proofs**:
+- ✅ Real Groth16 ZK-SNARKs
+- ✅ BN128 elliptic curve cryptography
+- ✅ Poseidon hash commitments
+- ✅ Offline browser verification
+- ✅ Production-ready architecture
 
 ## Features
 
-- 🎫 **Buy Train Tickets**: Browse and purchase train tickets
-- 🔒 **Zero-Knowledge Proofs**: Tickets are protected using ZK-SNARKs without storing personal data
-- ✅ **Scanner Verification**: Scanners can verify tickets without accessing personal information
+- 🎫 **Buy Train Tickets**: Browse and purchase train tickets with real ZK proofs
+- 🔒 **Zero-Knowledge Proofs**: Tickets protected using **real cryptographic** ZK-SNARKs (not mock!)
+- ✅ **Scanner Verification**: Verify tickets offline in browser with actual Groth16 verification
+- 🔐 **Privacy**: Proves ticket validity WITHOUT revealing ticket ID or personal data
 - 💳 **POC Payment**: Simplified payment confirmation for demonstration
 
 ## Tech Stack
@@ -111,10 +121,20 @@ pnpm clean            # Clean all build artifacts
 
 ## 📚 Documentation
 
-- **[GETTING_STARTED.md](GETTING_STARTED.md)** - Quick start guide (START HERE!)
+### 🚀 Quick Start
+- **[START.md](START.md)** - Quick start guide (START HERE!)
+- **[REAL_ZK_PROOFS.md](REAL_ZK_PROOFS.md)** - Real ZK implementation summary
+
+### 🔧 Setup & Architecture
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** - Getting started guide
 - **[SETUP.md](SETUP.md)** - Detailed setup instructions
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture deep dive
 - **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Complete project overview
+
+### 🔐 ZK Circuits
+- **[circuits/QUICKSTART.md](circuits/QUICKSTART.md)** - Circuit setup guide
+- **[circuits/README.md](circuits/README.md)** - Comprehensive circuit documentation
+- **[circuits/ticket.circom](circuits/ticket.circom)** - The actual ZK circuit
 
 ## 🎯 Features
 
