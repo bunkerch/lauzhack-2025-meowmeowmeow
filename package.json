@@ -1,0 +1,28 @@
+{
+  "name": "cff-ticket-zk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Zero-knowledge proof train ticket e-commerce platform for SBB CFF FFS",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @cff/backend dev\" \"pnpm --filter @cff/frontend dev\"",
+    "build": "pnpm -r build",
+    "clean": "pnpm -r clean",
+    "setup": "bash scripts/setup.sh",
+    "start": "bash scripts/start.sh",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "backend": "pnpm --filter @cff/backend dev",
+    "frontend": "pnpm --filter @cff/frontend dev"
+  },
+  "devDependencies": {
+    "circomlib": "^2.0.5",
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

@@ -1,0 +1,29 @@
+node_modules
+dist
+build
+.env
+.env.local
+*.log
+coverage
+.DS_Store
+.vscode
+.idea
+*.tsbuildinfo
+
+# Drizzle
+drizzle/
+
+# ZK proof artifacts (large files)
+circuits/*.zkey
+circuits/*.ptau
+circuits/*.r1cs
+circuits/*.wasm
+circuits/*.sym
+circuits/proof.json
+circuits/public.json
+circuits/witness.wtns
+circuits/input.json
+
+# Keep verification_key.json (small, needed for production)
+# circuits/verification_key.json
+
