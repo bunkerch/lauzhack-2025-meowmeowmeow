@@ -15,9 +15,10 @@ This is not a mock - this system uses **actual zero-knowledge proofs**:
 
 - 🎫 **Buy Train Tickets**: Browse and purchase train tickets with real ZK proofs
 - 🔒 **Zero-Knowledge Proofs**: Tickets protected using **real cryptographic** ZK-SNARKs (not mock!)
-- ✅ **Scanner Verification**: Verify tickets offline in browser with actual Groth16 verification
+- ✅ **Staff Scanner**: Separate internal frontend for ticket verification (password-protected)
 - 🔐 **Privacy**: Proves ticket validity WITHOUT revealing ticket ID or personal data
 - 💳 **POC Payment**: Simplified payment confirmation for demonstration
+- 🔒 **Offline Verification**: Verify tickets entirely in browser with actual Groth16 verification
 
 ## Tech Stack
 
@@ -31,12 +32,15 @@ This is not a mock - this system uses **actual zero-knowledge proofs**:
 ```
 cff-ticket-frfr/
 ├── packages/
-│   ├── frontend/     # React TypeScript frontend
-│   ├── backend/      # Node.js TypeScript backend
-│   └── circuits/     # Circom ZK circuits
+│   ├── frontend/         # Public customer frontend (React + TypeScript)
+│   ├── scanner-frontend/ # Internal staff scanner (React + TypeScript) 🔒
+│   ├── backend/          # Backend API (Node.js + Express)
+│   └── circuits/         # ZK circuits (Circom)
 ├── package.json
 └── pnpm-workspace.yaml
 ```
+
+> **Note**: The scanner has been separated into a dedicated internal frontend for staff use. See [SCANNER_SEPARATION.md](./SCANNER_SEPARATION.md) for details.
 
 ## Getting Started
 
@@ -77,7 +81,8 @@ pnpm dev
 
 ### Development
 
-- **Frontend**: http://localhost:5173
+- **Public Frontend**: http://localhost:5173
+- **Staff Scanner** 🔒: http://localhost:5174 (password: `cff-staff-2024`)
 - **Backend**: http://localhost:3000
 
 ## How It Works
@@ -104,8 +109,10 @@ The circuit proves:
 
 ```bash
 # Development
-pnpm dev              # Start both frontend and backend
-pnpm frontend         # Start only frontend
+pnpm dev              # Start public frontend and backend
+pnpm dev:all          # Start all services (public + scanner + backend)
+pnpm frontend         # Start only public frontend (port 5173)
+pnpm scanner          # Start only staff scanner frontend (port 5174) 🔒
 pnpm backend          # Start only backend
 
 # Database
@@ -130,6 +137,10 @@ pnpm clean            # Clean all build artifacts
 - **[SETUP.md](SETUP.md)** - Detailed setup instructions
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture deep dive
 - **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Complete project overview
+
+### 🔐 Security & Scanner
+- **[SCANNER_SEPARATION.md](SCANNER_SEPARATION.md)** - Staff scanner separation guide 🆕
+- **[packages/scanner-frontend/README.md](packages/scanner-frontend/README.md)** - Scanner frontend docs
 
 ### 🔐 ZK Circuits
 - **[circuits/QUICKSTART.md](circuits/QUICKSTART.md)** - Circuit setup guide

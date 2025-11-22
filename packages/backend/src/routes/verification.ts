@@ -3,6 +3,7 @@ import { db } from '../database/db';
 import { routes, tickets } from '../database/schema';
 import { eq } from 'drizzle-orm';
 import { verifyTicketProof } from '../zk/proof-verifier';
+import { authenticateStaff } from '../middleware/auth';
 import {
   VerifyTicketRequestSchema,
   ScanTicketRequestSchema,
@@ -113,7 +114,8 @@ verificationRoutes.post('/', async (req, res) => {
 });
 
 // Scanner endpoint - verifies QR code content (supports offline mode)
-verificationRoutes.post('/scan', async (req, res) => {
+// Protected: Requires staff authentication
+verificationRoutes.post('/scan', authenticateStaff, async (req, res) => {
   try {
     // Validate request body with Zod
     const validationResult = ScanTicketRequestSchema.safeParse(req.body);

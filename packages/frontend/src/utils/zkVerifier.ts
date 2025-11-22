@@ -112,7 +112,7 @@ const VERIFICATION_KEY = {
     "1"
    ]
   ]
- }
+}
 
 /**
  * Verify a zero-knowledge proof using snarkjs

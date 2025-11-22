@@ -3,7 +3,6 @@ import { Train, ShieldCheck } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import PurchasePage from './pages/PurchasePage';
 import TicketPage from './pages/TicketPage';
-import ScannerPage from './pages/ScannerPage';
 
 function App() {
   return (
@@ -24,9 +23,6 @@ function App() {
               <Link to="/purchase" className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all no-underline">
                 Buy Tickets
               </Link>
-              <Link to="/scanner" className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all no-underline">
-                Scanner
-              </Link>
             </div>
           </div>
         </nav>
@@ -36,7 +32,6 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/purchase" element={<PurchasePage />} />
             <Route path="/ticket/:ticketId" element={<TicketPage />} />
-            <Route path="/scanner" element={<ScannerPage />} />
           </Routes>
         </main>
 
