@@ -3,6 +3,7 @@ import { Scan, CheckCircle, XCircle, Loader2, WifiOff, Wifi, Zap, History, Clock
 import { verifyTicketOffline } from '../utils/zkVerifier';
 import { getAuthHeaders } from '../config/auth';
 import { logTicketScan, getAuditLogs, LAUSANNE_ZURICH_STOPS, type LausanneZurichStop, type AuditLogEntry } from '../utils/auditLogger';
+import { verifyAndDecodeJWT, decodeJWTUnsafe, isJWT } from '../utils/jwtDecoder';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -22,6 +23,152 @@ function ScannerPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
 
+  const handleJWTTicket = async (jwtToken: string) => {
+    try {
+      // OFFLINE-BROWSER MODE: Verify entirely in the browser with RSA signature
+      if (verificationMode === 'offline-browser') {
+        console.log('🔒 OFFLINE-BROWSER MODE: Verifying JWT with RSA signature in browser');
+        
+        // Verify JWT signature and decode (fetches public key from backend once)
+        const verificationResult = await verifyAndDecodeJWT(jwtToken);
+        
+        if (!verificationResult.valid || !verificationResult.payload) {
+          setResult({
+            valid: false,
+            message: verificationResult.error || 'Invalid JWT ticket',
+            verificationMethod: 'offline-browser',
+          });
+          setScanning(false);
+          return;
+        }
+        
+        const payload = verificationResult.payload;
+        console.log('📋 JWT Payload:', payload);
+        
+        // Log the scan to audit log (non-blocking)
+        logTicketScan(payload.tid, currentStop).catch(() => {
+          // Silently handle errors - audit logging should not block the scan
+        });
+        
+        // Ticket signature is valid!
+        const validUntilDate = new Date(payload.exp * 1000);
+        
+        setResult({
+          valid: true,
+          message: 'JWT ticket is cryptographically valid (RSA signature verified)',
+          verificationMethod: 'offline-browser',
+          warning: 'Verified in browser with RSA. Cannot check if ticket was already used.',
+          ticket: {
+            route: `${payload.origin} → ${payload.dest}`,
+            type: `${payload.tp} (Class ${payload.productClass})`,
+            validUntil: validUntilDate.toISOString(),
+          },
+        });
+        
+        // Fetch audit logs for this ticket (non-blocking)
+        try {
+          const auditData = await getAuditLogs(payload.tid);
+          if (auditData) {
+            setAuditLogs(auditData.logs);
+          }
+        } catch (error) {
+          console.log('Could not fetch audit logs:', error);
+        }
+        
+        setScanning(false);
+        return;
+      }
+      
+      // ONLINE MODE: Send to backend for full verification
+      console.log('🌐 ONLINE MODE: Verifying JWT with backend');
+      
+      // Decode JWT without verification to get ticket ID for logging
+      const unsafePayload = decodeJWTUnsafe(jwtToken);
+      
+      try {
+        const response = await fetch('/api/verify/scan-jwt', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            jwt: jwtToken,
+            offline: false,
+          }),
+        });
+
+        const responseData = await response.json();
+        
+        // Validate response data with Zod
+        const resultValidation = ScanResultSchema.safeParse(responseData);
+        if (!resultValidation.success) {
+          console.error('Response validation failed:', resultValidation.error);
+          setResult({
+            valid: false,
+            message: 'Invalid response from server',
+          });
+        } else {
+          setResult(resultValidation.data);
+        }
+
+        // Fetch audit logs after verification
+        if (unsafePayload) {
+          const auditData = await getAuditLogs(unsafePayload.tid);
+          if (auditData) {
+            setAuditLogs(auditData.logs);
+          }
+        }
+      } catch (networkError) {
+        // Network error - fall back to offline verification with RSA
+        console.log('❌ Network error - falling back to offline-browser verification with RSA');
+        
+        const verificationResult = await verifyAndDecodeJWT(jwtToken);
+        
+        if (!verificationResult.valid || !verificationResult.payload) {
+          setResult({
+            valid: false,
+            message: verificationResult.error || 'Invalid JWT ticket',
+            verificationMethod: 'offline-browser',
+          });
+          setScanning(false);
+          return;
+        }
+        
+        const payload = verificationResult.payload;
+        const validUntilDate = new Date(payload.exp * 1000);
+        
+        setResult({
+          valid: true,
+          message: 'JWT ticket is valid (Network unavailable, RSA verified in browser)',
+          verificationMethod: 'offline-browser',
+          warning: 'Network unavailable. RSA signature verified in browser. Cannot check if ticket was already used.',
+          ticket: {
+            route: `${payload.origin} → ${payload.dest}`,
+            type: `${payload.tp} (Class ${payload.productClass})`,
+            validUntil: validUntilDate.toISOString(),
+          },
+        });
+        
+        // Try to fetch audit logs (may fail if network is down)
+        try {
+          const auditData = await getAuditLogs(payload.tid);
+          if (auditData) {
+            setAuditLogs(auditData.logs);
+          }
+        } catch (error) {
+          console.log('Could not fetch audit logs (network unavailable)');
+        }
+      }
+      
+      setScanning(false);
+    } catch (error) {
+      console.error('JWT verification error:', error);
+      setResult({
+        valid: false,
+        message: error instanceof Error ? error.message : 'Failed to verify JWT ticket',
+      });
+      setScanning(false);
+    }
+  };
+
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -33,10 +180,22 @@ function ScannerPage() {
     setResult(null);
 
     try {
+      const trimmedData = qrData.trim();
+      
+      // Check if the QR data is a JWT token (new format)
+      if (isJWT(trimmedData)) {
+        console.log('🎫 Detected JWT format ticket');
+        await handleJWTTicket(trimmedData);
+        return;
+      }
+
+      // Legacy JSON format handling
+      console.log('📦 Detected legacy JSON format ticket');
+      
       // Parse QR code data
       let parsedData;
       try {
-        parsedData = JSON.parse(qrData.trim());
+        parsedData = JSON.parse(trimmedData);
       } catch (parseError) {
         setResult({
           valid: false,
@@ -263,7 +422,7 @@ function ScannerPage() {
                   id="qrData"
                   value={qrData}
                   onChange={(e) => setQrData(e.target.value)}
-                  placeholder='Paste full QR code JSON data here (e.g., {"ticketId":"...","proof":{...},"publicSignals":[...],...})'
+                  placeholder='Paste QR code data here (JWT token or JSON format)'
                   disabled={scanning}
                   autoFocus
                   rows={6}
@@ -317,7 +476,7 @@ function ScannerPage() {
                 </p>
                 <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground ml-2">
                   <li>Scan the QR code from the passenger's ticket</li>
-                  <li>The QR code contains: ticket ID, ZK proof, and validity data</li>
+                  <li>Supports both JWT tokens and legacy JSON format</li>
                   <li>Choose your verification mode above</li>
                 </ol>
                 <div className="mt-4 pt-4 border-t border-border">

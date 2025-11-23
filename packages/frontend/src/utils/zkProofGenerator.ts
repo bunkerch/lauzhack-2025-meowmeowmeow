@@ -70,25 +70,3 @@ export async function generatePaymentProof(paymentData: PaymentData): Promise<Pr
         throw new Error('Failed to generate ZK proof: ' + (error as Error).message);
     }
 }
-
-/**
- * Verify a proof locally (for testing).
- * In production, the backend will verify the proof.
- */
-export async function verifyProofLocally(proof: any, publicSignals: string[]): Promise<boolean> {
-    try {
-        // Load verification key
-        const vkResponse = await fetch('/circuits/verification_key.json');
-        const verificationKey = await vkResponse.json();
-
-        // Verify the proof
-        const valid = await snarkjs.groth16.verify(verificationKey, publicSignals, proof);
-
-        return valid;
-
-    } catch (error) {
-        console.error('Local verification error:', error);
-        return false;
-    }
-}
-

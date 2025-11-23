@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Shield, CreditCard, Key, CheckCircle2 } from 'lucide-react';
+import { Loader2, Shield, CreditCard, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -215,10 +215,10 @@ function ZKPurchasePage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
+        <div className="min-h-screen p-8">
             <div className="max-w-2xl mx-auto">
-                <h1 className="text-4xl font-bold text-gray-900 mb-8 flex items-center gap-3">
-                    <Shield className="text-indigo-600" />
+                <h1 className="text-4xl font-bold text-foreground mb-8 flex items-center gap-3">
+                    <Shield className="text-primary" />
                     ZK Train Ticket Purchase
                 </h1>
 
@@ -234,21 +234,21 @@ function ZKPurchasePage() {
                             <div
                                 className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl
                                     ${['quote', 'payment', 'proof', 'ticket'].indexOf(step) >= index
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'bg-gray-200 text-gray-400'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-muted text-muted-foreground'
                                     }`}
                             >
                                 {item.icon}
                             </div>
-                            <div className="text-xs mt-2 font-medium">{item.label}</div>
+                            <div className="text-xs mt-2 font-medium text-muted-foreground">{item.label}</div>
                         </div>
                     ))}
                 </div>
 
                 {error && (
-                    <Card className="mb-6 border-red-200 bg-red-50">
+                    <Card className="mb-6 border-destructive/50 bg-destructive/10">
                         <CardContent className="pt-6">
-                            <p className="text-red-600 text-sm">{error}</p>
+                            <p className="text-destructive-foreground text-sm">{error}</p>
                         </CardContent>
                     </Card>
                 )}
@@ -313,18 +313,18 @@ function ZKPurchasePage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                            <div className="bg-muted p-4 rounded-lg space-y-2">
                                 <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Route:</span>
-                                    <span className="font-medium">{quote.origin} → {quote.destination}</span>
+                                    <span className="text-sm text-muted-foreground">Route:</span>
+                                    <span className="font-medium text-foreground">{quote.origin} → {quote.destination}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Price:</span>
-                                    <span className="font-medium">CHF {(quote.priceCents / 100).toFixed(2)}</span>
+                                    <span className="text-sm text-muted-foreground">Price:</span>
+                                    <span className="font-medium text-foreground">CHF {(quote.priceCents / 100).toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Quote ID:</span>
-                                    <span className="font-mono text-xs">{quote.quoteId}</span>
+                                    <span className="text-sm text-muted-foreground">Quote ID:</span>
+                                    <span className="font-mono text-xs text-muted-foreground">{quote.quoteId}</span>
                                 </div>
                             </div>
                             <Button onClick={handlePayment} className="w-full" disabled={loading}>
@@ -346,8 +346,8 @@ function ZKPurchasePage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="text-center py-8">
-                            <Loader2 className="h-16 w-16 animate-spin mx-auto text-indigo-600 mb-4" />
-                            <p className="text-sm text-gray-600">
+                            <Loader2 className="h-16 w-16 animate-spin mx-auto text-primary mb-4" />
+                            <p className="text-sm text-muted-foreground">
                                 This proves you paid without revealing your identity or transaction details
                             </p>
                         </CardContent>
@@ -367,28 +367,28 @@ function ZKPurchasePage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="bg-green-50 p-4 rounded-lg space-y-2">
+                            <div className="bg-green-900/30 border border-green-800/50 p-4 rounded-lg space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-600">Ticket ID:</span>
+                                    <span className="text-sm text-muted-foreground">Ticket ID:</span>
                                     <Badge variant="secondary">{ticket.ticketId?.slice(0, 16)}...</Badge>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Route:</span>
-                                    <span className="font-medium">
+                                    <span className="text-sm text-muted-foreground">Route:</span>
+                                    <span className="font-medium text-foreground">
                                         {ticket.claims?.origin} → {ticket.claims?.dest}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-sm text-gray-600">Valid Until:</span>
-                                    <span className="font-medium">
+                                    <span className="text-sm text-muted-foreground">Valid Until:</span>
+                                    <span className="font-medium text-foreground">
                                         {new Date(ticket.claims?.validUntil * 1000).toLocaleString()}
                                     </span>
                                 </div>
                             </div>
                             
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                                <p className="text-xs text-gray-600 mb-2">JWT Token:</p>
-                                <p className="font-mono text-xs break-all bg-white p-2 rounded">
+                            <div className="bg-muted p-4 rounded-lg">
+                                <p className="text-xs text-muted-foreground mb-2">JWT Token:</p>
+                                <p className="font-mono text-xs break-all bg-background p-2 rounded border border-border">
                                     {ticket.token}
                                 </p>
                             </div>

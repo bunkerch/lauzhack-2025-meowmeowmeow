@@ -93,12 +93,22 @@ export const AuditLogRequestSchema = z.object({
   currentStop: z.enum(LAUSANNE_ZURICH_STOPS).optional(),
 });
 
+/**
+ * JWT Scan Request Schema
+ * For scanning JWT-based tickets
+ */
+export const JWTScanRequestSchema = z.object({
+  jwt: z.string().min(10), // The JWT token string
+  offline: z.boolean().optional(),
+});
+
 // Type exports for TypeScript
 export type PurchaseTicketRequest = z.infer<typeof PurchaseTicketRequestSchema>;
 export type VerifyTicketRequest = z.infer<typeof VerifyTicketRequestSchema>;
 export type ScanTicketRequest = z.infer<typeof ScanTicketRequestSchema>;
 export type VerifyOfflineRequest = z.infer<typeof VerifyOfflineRequestSchema>;
 export type AuditLogRequest = z.infer<typeof AuditLogRequestSchema>;
+export type JWTScanRequest = z.infer<typeof JWTScanRequestSchema>;
 export type ProofData = z.infer<typeof ProofSchema>;
 export type PublicSignals = z.infer<typeof PublicSignalsSchema>;
 

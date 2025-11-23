@@ -94,9 +94,8 @@ Endpoints:
     "origin": "8507000",                     // GTFS stop_id
     "dest": "8503000",                       // GTFS stop_id
     "tripIds": ["TRIP_1234"],                // optional: GTFS trip_ids
-    "validFrom": 1732275600,                 // unix seconds
-    "validUntil": 1732279200,                // unix seconds
-    "iat": 1732275500,                       // issuedAt
+    "nbf": 1732275600,                 // unix seconds
+    "exp": 1732279200,                // unix seconds
     "productClass": "2"                      // 1st/2nd class, etc.
 }
 ```

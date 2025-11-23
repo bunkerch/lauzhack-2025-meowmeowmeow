@@ -8,10 +8,13 @@ import {
   VerifyTicketRequestSchema,
   ScanTicketRequestSchema,
   VerifyOfflineRequestSchema,
+  JWTScanRequestSchema,
   type VerifyTicketRequest,
   type ScanTicketRequest,
-  type VerifyOfflineRequest
+  type VerifyOfflineRequest,
+  type JWTScanRequest
 } from '../schemas/validation';
+import { verifyTicketJwt } from '../services/jwt-signer';
 
 export const verificationRoutes: ExpressRouter = Router();
 
@@ -331,5 +334,128 @@ verificationRoutes.post('/verify-offline', async (req, res) => {
   } catch (error) {
     console.error('Error in offline verification:', error);
     res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// JWT ticket scan endpoint
+// Protected: Requires staff authentication
+verificationRoutes.post('/scan-jwt', authenticateStaff, async (req, res) => {
+  try {
+    // Validate request body with Zod
+    const validationResult = JWTScanRequestSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: 'Invalid request data',
+        details: validationResult.error.format()
+      });
+    }
+
+    const { jwt: jwtToken, offline } = validationResult.data;
+
+    // STEP 1: Verify and decode JWT (OFFLINE)
+    const verificationResult = verifyTicketJwt(jwtToken);
+    
+    if (!verificationResult.valid || !verificationResult.claims) {
+      return res.json({
+        valid: false,
+        message: verificationResult.error || 'Invalid JWT ticket',
+        verificationMethod: 'offline',
+      });
+    }
+
+    const claims = verificationResult.claims;
+
+    // If offline mode, stop here (JWT is valid, don't check database)
+    if (offline) {
+      return res.json({
+        valid: true,
+        message: 'JWT ticket is valid (offline verification)',
+        verificationMethod: 'offline',
+        ticket: {
+          route: `${claims.origin} → ${claims.dest}`,
+          type: `${claims.tp} (Class ${claims.productClass})`,
+          validUntil: new Date(claims.exp * 1000).toISOString(),
+        },
+        warning: 'Cannot verify if ticket was already used (offline mode)',
+      });
+    }
+
+    // STEP 2: Check database for "already used" status (ONLINE)
+    try {
+      const result = await db.select({
+        id: tickets.id,
+        ticketType: tickets.ticketType,
+        isUsed: tickets.isUsed,
+        origin: routes.origin,
+        destination: routes.destination,
+      })
+        .from(tickets)
+        .innerJoin(routes, eq(tickets.routeId, routes.id))
+        .where(eq(tickets.id, claims.tid))
+        .limit(1);
+
+      if (result.length === 0) {
+        // Ticket not in database - this is okay, it's still valid
+        return res.json({
+          valid: true,
+          message: 'JWT ticket is valid (not in database)',
+          verificationMethod: 'online',
+          ticket: {
+            route: `${claims.origin} → ${claims.dest}`,
+            type: `${claims.tp} (Class ${claims.productClass})`,
+            validUntil: new Date(claims.exp * 1000).toISOString(),
+          },
+          warning: 'Ticket not found in database - may have been issued elsewhere',
+        });
+      }
+
+      const ticket = result[0];
+
+      if (ticket.isUsed) {
+        return res.json({
+          valid: false,
+          message: 'Ticket has already been used',
+          verificationMethod: 'online',
+          ticket: {
+            route: `${ticket.origin} → ${ticket.destination}`,
+            type: ticket.ticketType,
+            validUntil: new Date(claims.exp * 1000).toISOString(),
+          },
+        });
+      }
+
+      // All checks passed!
+      return res.json({
+        valid: true,
+        message: 'JWT ticket is valid',
+        verificationMethod: 'online',
+        ticket: {
+          route: `${ticket.origin} → ${ticket.destination}`,
+          type: `${ticket.ticketType} (Class ${claims.productClass})`,
+          validUntil: new Date(claims.exp * 1000).toISOString(),
+        },
+      });
+    } catch (dbError) {
+      // Database error - but JWT is still valid!
+      console.error('Database error during JWT verification:', dbError);
+      return res.json({
+        valid: true,
+        message: 'JWT ticket is valid (database unavailable)',
+        verificationMethod: 'offline-fallback',
+        ticket: {
+          route: `${claims.origin} → ${claims.dest}`,
+          type: `${claims.tp} (Class ${claims.productClass})`,
+          validUntil: new Date(claims.exp * 1000).toISOString(),
+        },
+        warning: 'Cannot verify if ticket was already used (database unavailable)',
+      });
+    }
+  } catch (error) {
+    console.error('Error scanning JWT ticket:', error);
+    res.status(500).json({ 
+      error: 'Failed to scan JWT ticket',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
