@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { Train, ShieldCheck } from 'lucide-react';
 import HomePage from './pages/HomePage';
-import PurchasePage from './pages/PurchasePage';
 import ZKPurchasePage from './pages/ZKPurchasePage';
 import TicketPage from './pages/TicketPage';
 
@@ -22,10 +21,7 @@ function App() {
                 Home
               </Link>
               <Link to="/zk-purchase" className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all no-underline">
-                ZK Purchase
-              </Link>
-              <Link to="/purchase" className="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all no-underline">
-                Legacy Purchase
+                Purchase
               </Link>
             </div>
           </div>
@@ -35,7 +31,6 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/zk-purchase" element={<ZKPurchasePage />} />
-            <Route path="/purchase" element={<PurchasePage />} />
             <Route path="/ticket/:ticketId" element={<TicketPage />} />
             <Route path="/ticket" element={<TicketPage />} />
           </Routes>

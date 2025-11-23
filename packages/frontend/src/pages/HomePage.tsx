@@ -26,7 +26,7 @@ function HomePage() {
         </p>
         
         <Button asChild size="lg" className="rounded-full h-12 px-8 text-base font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all group">
-          <Link to="/purchase" className="flex items-center gap-2">
+          <Link to="/zk-purchase" className="flex items-center gap-2">
             <ShoppingCart size={20} />
             Buy Tickets Now
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />

@@ -12,6 +12,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Shield, CreditCard, CheckCircle2 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -386,6 +387,15 @@ function ZKPurchasePage() {
                                 </div>
                             </div>
                             
+                            <div className="flex justify-center p-6 bg-background rounded-lg border border-border">
+                                <QRCodeSVG 
+                                    value={ticket.token} 
+                                    size={256}
+                                    level="M"
+                                    includeMargin={true}
+                                />
+                            </div>
+
                             <div className="bg-muted p-4 rounded-lg">
                                 <p className="text-xs text-muted-foreground mb-2">JWT Token:</p>
                                 <p className="font-mono text-xs break-all bg-background p-2 rounded border border-border">
