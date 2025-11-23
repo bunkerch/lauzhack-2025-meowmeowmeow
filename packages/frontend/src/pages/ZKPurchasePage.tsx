@@ -160,7 +160,7 @@ function ZKPurchasePage() {
             console.log('✅ ZK proof generated');
 
             // Step 4: Submit proof to Ticket Backend
-            await handleIssueTicket(proof, publicSignals);
+            await handleIssueTicket(proof, publicSignals, data);
 
         } catch (err) {
             setError('Failed to generate ZK proof: ' + (err as Error).message);
@@ -172,8 +172,12 @@ function ZKPurchasePage() {
     /**
      * Step 4: Submit ZK proof and receive JWT ticket
      */
-    const handleIssueTicket = async (proof: any, publicSignals: string[]) => {
-        if (!quote || !paymentData) return;
+    const handleIssueTicket = async (proof: any, publicSignals: string[], payment?: PaymentResponse) => {
+        const data = payment || paymentData;
+        if (!quote || !data) {
+            console.error('❌ Missing quote or payment data', { quote, data });
+            return;
+        }
 
         try {
             console.log('🎫 Requesting ticket issuance...');
@@ -183,7 +187,7 @@ function ZKPurchasePage() {
                 body: JSON.stringify({
                     quoteId: quote.quoteId,
                     priceCents: quote.priceCents,
-                    root: paymentData.root,
+                    root: data.root,
                     proof,
                     publicSignals
                 })
