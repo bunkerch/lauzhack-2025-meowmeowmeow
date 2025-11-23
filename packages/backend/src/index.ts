@@ -5,6 +5,7 @@ import { ticketRoutes } from './routes/tickets';
 import { routeRoutes } from './routes/routes';
 import { verificationRoutes } from './routes/verification';
 import { paymentRoutes } from './routes/payment';
+import { auditRoutes } from './routes/audit';
 import { seedDatabase } from './database/seed';
 import { paymentService } from './services/payment-service';
 import { initializeFieldEncoding } from './utils/field-encoding';
@@ -25,6 +26,7 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/routes', routeRoutes);
 app.use('/api/verify', verificationRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Scan, CheckCircle, XCircle, Loader2, WifiOff, Wifi, Zap } from 'lucide-react';
+import { Scan, CheckCircle, XCircle, Loader2, WifiOff, Wifi, Zap, History, Clock } from 'lucide-react';
 import { verifyTicketOffline } from '../utils/zkVerifier';
 import { getAuthHeaders } from '../config/auth';
+import { logTicketScan, getAuditLogs, LAUSANNE_ZURICH_STOPS, type LausanneZurichStop, type AuditLogEntry } from '../utils/auditLogger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QRCodeDataSchema, ScanResultSchema, type ScanResult } from '../schemas/validation';
 
 type VerificationMode = 'offline-browser' | 'online';
@@ -16,6 +18,9 @@ function ScannerPage() {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [verificationMode, setVerificationMode] = useState<VerificationMode>('offline-browser');
+  const [currentStop, setCurrentStop] = useState<LausanneZurichStop | undefined>(undefined);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
 
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +60,26 @@ function ScannerPage() {
 
       const ticketData = validationResult.data;
 
+      // Log the scan to audit log (non-blocking)
+      logTicketScan(ticketData.ticketId, currentStop).catch(() => {
+        // Silently handle errors - audit logging should not block the scan
+      });
+
+      // Fetch audit logs for this ticket (non-blocking)
+      const fetchAuditLogs = async () => {
+        setLoadingAuditLogs(true);
+        try {
+          const auditData = await getAuditLogs(ticketData.ticketId);
+          if (auditData) {
+            setAuditLogs(auditData.logs);
+          }
+        } catch (error) {
+          console.error('Failed to fetch audit logs:', error);
+        } finally {
+          setLoadingAuditLogs(false);
+        }
+      };
+
       // OFFLINE-BROWSER MODE: Verify entirely in the browser
       if (verificationMode === 'offline-browser') {
         console.log('🔒 OFFLINE-BROWSER MODE: Verifying in browser, NO backend communication');
@@ -73,6 +98,9 @@ function ScannerPage() {
             validUntil: ticketData.validUntil,
           } : undefined,
         });
+        
+        // Fetch audit logs after verification
+        await fetchAuditLogs();
         
         setScanning(false);
         return;
@@ -108,6 +136,12 @@ function ScannerPage() {
       } else {
         setResult(resultValidation.data);
       }
+
+      // Fetch audit logs after verification
+      const auditData = await getAuditLogs(ticketData.ticketId);
+      if (auditData) {
+        setAuditLogs(auditData.logs);
+      }
     } catch (err) {
       // Network error - automatically use offline verification
       console.log('❌ Network error - falling back to offline-browser verification');
@@ -126,6 +160,12 @@ function ScannerPage() {
         }
 
         const ticketData = validationResult.data;
+        
+        // Log the scan to audit log (non-blocking)
+        logTicketScan(ticketData.ticketId, currentStop).catch(() => {
+          // Silently handle errors - audit logging should not block the scan
+        });
+        
         const offlineResult = await verifyTicketOffline(ticketData);
         
         setResult({
@@ -140,6 +180,17 @@ function ScannerPage() {
             validUntil: ticketData.validUntil,
           } : undefined,
         });
+
+        // Try to fetch audit logs (may fail if network is down)
+        try {
+          const auditData = await getAuditLogs(ticketData.ticketId);
+          if (auditData) {
+            setAuditLogs(auditData.logs);
+          }
+        } catch (error) {
+          // Silently fail if network is unavailable
+          console.log('Could not fetch audit logs (network unavailable)');
+        }
       } catch (offlineErr) {
         setResult({
           valid: false,
@@ -155,6 +206,8 @@ function ScannerPage() {
   const handleReset = () => {
     setQrData('');
     setResult(null);
+    setAuditLogs([]);
+    // Keep currentStop selected for convenience
   };
 
   const toggleMode = () => {
@@ -216,6 +269,26 @@ function ScannerPage() {
                   rows={6}
                   className="font-mono text-xs resize-none"
                 />
+              </div>
+
+              <div className="space-y-3">
+                <Label htmlFor="currentStop" className="text-sm font-medium">Current Stop (Lausanne → Zurich)</Label>
+                <Select
+                  value={currentStop}
+                  onValueChange={(value) => setCurrentStop(value as LausanneZurichStop)}
+                  disabled={scanning}
+                >
+                  <SelectTrigger id="currentStop" className="w-full">
+                    <SelectValue placeholder="Select current stop" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LAUSANNE_ZURICH_STOPS.map((stop) => (
+                      <SelectItem key={stop} value={stop}>
+                        {stop}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <Button 
@@ -354,6 +427,55 @@ function ScannerPage() {
                   </div>
                 </div>
               )}
+
+              {/* Audit Log Section */}
+              <div className="bg-muted/20 border border-border p-5 rounded-lg mb-6 text-left">
+                <div className="flex items-center gap-2 mb-4">
+                  <History size={18} className="text-primary" />
+                  <h3 className="font-semibold text-sm">Scan History</h3>
+                  {loadingAuditLogs && (
+                    <Loader2 className="animate-spin ml-2" size={14} />
+                  )}
+                </div>
+                
+                {auditLogs.length === 0 && !loadingAuditLogs ? (
+                  <p className="text-sm text-muted-foreground">No previous scans found for this ticket.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {auditLogs.map((log, index) => (
+                      <div
+                        key={log.id}
+                        className={`p-3 rounded-lg border ${
+                          index === 0
+                            ? 'bg-primary/10 border-primary/30'
+                            : 'bg-muted/30 border-border'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Clock size={14} className="text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(log.scannedAt).toLocaleString()}
+                              </span>
+                              {index === 0 && (
+                                <Badge variant="outline" className="text-xs px-2 py-0">
+                                  Latest
+                                </Badge>
+                              )}
+                            </div>
+                            {log.currentStop && (
+                              <div className="text-sm font-medium text-foreground mt-1">
+                                Stop: {log.currentStop}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <Button onClick={handleReset} size="lg" className="rounded-xl shadow-lg shadow-primary/25">
                 Scan Another Ticket
