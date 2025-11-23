@@ -12,19 +12,12 @@ export const Groth16ProofSchema = z.object({
   curve: z.literal('bn128'),
 });
 
-/**
- * Legacy Proof Schema
- * For tickets purchased without ZK proofs
- */
-export const LegacyProofSchema = z.object({
-  legacy: z.literal(true),
-});
 
 /**
  * Proof Schema (Union of ZK and Legacy)
  * Accepts both real ZK proofs and legacy tickets
  */
-export const ProofSchema = z.union([Groth16ProofSchema, LegacyProofSchema]);
+export const ProofSchema = Groth16ProofSchema
 
 /**
  * Public Signals Schema
@@ -40,7 +33,7 @@ export const PublicSignalsSchema = z.array(z.string());
 export const QRCodeDataSchema = z.object({
   ticketId: z.string(),
   proof: ProofSchema,
-  publicSignals: PublicSignalsSchema.optional(),
+  publicSignals: PublicSignalsSchema,
   validFrom: z.string().datetime().or(z.string().date()),
   validUntil: z.string().datetime().or(z.string().date()),
   routeId: z.number().int().nonnegative(),

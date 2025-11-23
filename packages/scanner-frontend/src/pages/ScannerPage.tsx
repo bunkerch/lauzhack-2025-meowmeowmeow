@@ -57,7 +57,6 @@ function ScannerPage() {
           valid: true,
           message: 'JWT ticket is cryptographically valid (RSA signature verified)',
           verificationMethod: 'offline-browser',
-          warning: 'Verified in browser with RSA. Cannot check if ticket was already used.',
           ticket: {
             route: `${payload.origin} → ${payload.dest}`,
             type: `${payload.tp} (Class ${payload.productClass})`,
@@ -139,7 +138,6 @@ function ScannerPage() {
           valid: true,
           message: 'JWT ticket is valid (Network unavailable, RSA verified in browser)',
           verificationMethod: 'offline-browser',
-          warning: 'Network unavailable. RSA signature verified in browser. Cannot check if ticket was already used.',
           ticket: {
             route: `${payload.origin} → ${payload.dest}`,
             type: `${payload.tp} (Class ${payload.productClass})`,
@@ -249,9 +247,6 @@ function ScannerPage() {
           valid: offlineResult.valid,
           message: offlineResult.message,
           verificationMethod: 'offline-browser',
-          warning: offlineResult.valid 
-            ? 'Verified entirely in browser. Cannot check if ticket was already used.'
-            : undefined,
           ticket: offlineResult.valid ? {
             route: `Route ${ticketData.routeId || 'Unknown'}`,
             validUntil: ticketData.validUntil,
@@ -331,9 +326,6 @@ function ScannerPage() {
           valid: offlineResult.valid,
           message: offlineResult.message + ' (Network unavailable, verified in browser)',
           verificationMethod: 'offline-browser',
-          warning: offlineResult.valid 
-            ? 'Network unavailable. Verified in browser. Cannot check if ticket was already used.'
-            : undefined,
           ticket: offlineResult.valid ? {
             route: `Route ${ticketData.routeId || 'Unknown'}`,
             validUntil: ticketData.validUntil,
@@ -643,27 +635,6 @@ function ScannerPage() {
           </CardContent>
         )}
       </Card>
-
-      {/* Feature Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { icon: '⚡', title: 'Browser Verification', desc: 'Verify proofs entirely in browser - zero backend calls' },
-          { icon: '🔒', title: 'Cryptographically Secure', desc: 'Tamper-proof ZK proofs verified locally' },
-          { icon: '📡', title: 'Works Offline', desc: 'No network required for verification' },
-        ].map((feature, idx) => (
-          <Card key={idx} className="glass border-primary/5 hover:border-primary/20 transition-all">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <span className="text-lg">{feature.icon}</span>
-                {feature.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground leading-relaxed">{feature.desc}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }
