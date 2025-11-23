@@ -1,24 +1,25 @@
 # CFF Ticket ZK - Zero-Knowledge Train Ticket Platform
 
-A **fully functional** zero-knowledge proof system for SBB CFF FFS train tickets. Uses **real Groth16 ZK-SNARKs** to prove ticket validity without revealing personal information.
+An open-source, privacy-preserving ticketing system for SBB CFF FFS train tickets built with zero-knowledge proofs. This project demonstrates how ZK-SNARKs can be applied to real-world ticketing systems to protect user privacy while maintaining security.
 
-## 🎉 Status: REAL Cryptography Implemented!
+## About This Project
 
-This is not a mock - this system uses **actual zero-knowledge proofs**:
-- ✅ Real Groth16 ZK-SNARKs
-- ✅ BN128 elliptic curve cryptography
-- ✅ Poseidon hash commitments
-- ✅ Offline browser verification
-- ✅ Production-ready architecture
+CFF Ticket ZK is a proof-of-concept implementation showcasing how zero-knowledge cryptography can revolutionize public transportation ticketing. The system allows passengers to prove they have valid tickets without revealing personal information, protecting privacy while preventing fraud.
+
+**Key Cryptographic Features:**
+- Groth16 ZK-SNARKs on the BN128 elliptic curve
+- Poseidon hash-based commitments
+- Browser-based proof verification
+- Privacy-preserving ticket validation
 
 ## Features
 
-- 🎫 **Buy Train Tickets**: Browse and purchase train tickets with real ZK proofs
-- 🔒 **Zero-Knowledge Proofs**: Tickets protected using **real cryptographic** ZK-SNARKs (not mock!)
-- ✅ **Staff Scanner**: Separate internal frontend for ticket verification (password-protected)
-- 🔐 **Privacy**: Proves ticket validity WITHOUT revealing ticket ID or personal data
-- 💳 **POC Payment**: Simplified payment confirmation for demonstration
-- 🔒 **Offline Verification**: Verify tickets entirely in browser with actual Groth16 verification
+- 🎫 **Digital Ticket Purchasing**: Browse routes and purchase train tickets
+- 🔒 **Zero-Knowledge Proofs**: Cryptographic proof system for ticket validation
+- ✅ **Verification Scanner**: Staff interface for ticket validation
+- 🔐 **Privacy First**: Prove ticket validity without exposing personal data
+- 💳 **Payment Integration**: Demonstration payment flow
+- 🌐 **Offline Capable**: Client-side proof verification
 
 ## Tech Stack
 
@@ -26,64 +27,70 @@ This is not a mock - this system uses **actual zero-knowledge proofs**:
 - **Backend**: Node.js + TypeScript + Express
 - **Database**: PostgreSQL + Drizzle ORM
 - **ZK Proofs**: snarkjs + circom
+- **Cryptography**: circomlibjs (Poseidon hash)
 
 ## Project Structure
+
+This is a monorepo managed with pnpm workspaces:
 
 ```
 cff-ticket-frfr/
 ├── packages/
-│   ├── frontend/         # Public customer frontend (React + TypeScript)
-│   ├── scanner-frontend/ # Internal staff scanner (React + TypeScript) 🔒
-│   ├── backend/          # Backend API (Node.js + Express)
-│   └── circuits/         # ZK circuits (Circom)
+│   ├── frontend/         # Public customer-facing interface
+│   ├── scanner-frontend/ # Staff verification interface
+│   ├── backend/          # API server and business logic
+│   └── circuits/         # Zero-knowledge proof circuits
 ├── package.json
 └── pnpm-workspace.yaml
 ```
 
-> **Note**: The scanner has been separated into a dedicated internal frontend for staff use. See [SCANNER_SEPARATION.md](./SCANNER_SEPARATION.md) for details.
+Each package is independently developed but shares common dependencies. See individual package READMEs for detailed documentation.
 
 ## Getting Started
 
 ### Prerequisites
 
-✅ All dependencies are already installed!
+- Node.js >= 22
+- pnpm >= 10
+- PostgreSQL >= 18
 
-- Node.js >= 18 ✅
-- pnpm >= 8 ✅
-- PostgreSQL >= 14 (or Docker)
-
-### Quick Start (2 commands)
+### Quick Start
 
 ```bash
-# 1. Start PostgreSQL
+# Install dependencies
+pnpm install
+
+# Start PostgreSQL database
 pnpm db:up
 
-# 2. Start the application
+# Start the application
 pnpm dev
 ```
 
-**That's it!** Open http://localhost:5173 in your browser.
+The application will be available at http://localhost:5173
 
-### First Time Setup
+### Development Setup
 
-For detailed instructions, see [GETTING_STARTED.md](GETTING_STARTED.md)
+btw you should use https://coder.com
+
+For detailed setup instructions, see [GETTING_STARTED.md](GETTING_STARTED.md)
 
 ```bash
 # Start PostgreSQL with Docker
 pnpm db:up
 
-# Or create database manually if you have PostgreSQL installed
+# Or create database manually if you have PostgreSQL running locally
 createdb cff_tickets
 
-# Start both frontend and backend
-pnpm dev
+# Start all services
+pnpm dev:all
 ```
 
-### Development
+### Service Endpoints
 
 - **Public Frontend**: http://localhost:5173
-- **Staff Scanner** 🔒: http://localhost:5174 (password: `cff-staff-2024`)
-- **Backend**: http://localhost:3000
+- **Staff Scanner**: http://localhost:5174 (password: `cff-staff-2024`)
+- **Backend API**: http://localhost:3000
 
 ## How It Works
 
@@ -125,38 +132,13 @@ pnpm build            # Build all packages
 # Clean
 pnpm clean            # Clean all build artifacts
 ```
-
-## 📚 Documentation
-
-### 🚀 Quick Start
-- **[START.md](START.md)** - Quick start guide (START HERE!)
-- **[REAL_ZK_PROOFS.md](REAL_ZK_PROOFS.md)** - Real ZK implementation summary
-
-### 🔧 Setup & Architecture
-- **[GETTING_STARTED.md](GETTING_STARTED.md)** - Getting started guide
-- **[SETUP.md](SETUP.md)** - Detailed setup instructions
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture deep dive
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Complete project overview
-
-### 🔐 Security & Scanner
-- **[SCANNER_SEPARATION.md](SCANNER_SEPARATION.md)** - Staff scanner separation guide 🆕
-- **[packages/scanner-frontend/README.md](packages/scanner-frontend/README.md)** - Scanner frontend docs
-
-### 🔐 ZK Circuits
-- **[circuits/QUICKSTART.md](circuits/QUICKSTART.md)** - Circuit setup guide
-- **[circuits/README.md](circuits/README.md)** - Comprehensive circuit documentation
-- **[circuits/ticket.circom](circuits/ticket.circom)** - The actual ZK circuit
-
 ## 🎯 Features
 
 ### 🎫 Ticket Purchase
-- Browse available train routes
-- Select ticket type (Single/Day/Return)
 - Choose travel date
 - Instant ticket generation with QR code
 
 ### 🔒 Zero-Knowledge Proofs
-- Tickets protected with cryptographic proofs
 - No personal data stored in database
 - Privacy-preserving verification
 - Based on snarkjs and Poseidon hash
@@ -186,7 +168,27 @@ pnpm clean            # Clean all build artifacts
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed technical information.
 
+## Contributing
+
+We don't welcome contributions as this was a hackathon project for Lauzhack haha
+
+## Security
+
+This is a demonstration project. If you're considering deploying similar technology in production:
+
+- Conduct thorough security audits
+- Use multi-party trusted setup ceremonies for ZK circuits
+- Implement proper key management
+- Follow industry best practices for cryptographic implementations
+- Consider regulatory compliance (data protection, privacy laws)
+
+If you discover a security vulnerability, please report it responsibly by opening a private security advisory.
+
+BTW I recommend you use https://aikido.dev
+
 ## License
 
-MIT
+MIT License - see LICENSE file for details
+
+This project is open source and available to everyone. Feel free to use, modify, and distribute it according to the terms of the MIT license.
 

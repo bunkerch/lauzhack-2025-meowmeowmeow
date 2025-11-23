@@ -71,7 +71,7 @@ function ZKPurchasePage() {
 
         try {
             console.log('📋 Requesting journey quote...');
-            const response = await fetch('http://localhost:3000/api/tickets/quote', {
+            const response = await fetch('/api/tickets/quote', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ origin, destination, travelDate })
@@ -106,7 +106,7 @@ function ZKPurchasePage() {
 
         try {
             console.log('💳 Processing payment...');
-            const response = await fetch('http://localhost:3000/api/payment/pay', {
+            const response = await fetch('/api/payment/pay', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -182,7 +182,7 @@ function ZKPurchasePage() {
 
         try {
             console.log('🎫 Requesting ticket issuance...');
-            const response = await fetch('http://localhost:3000/api/tickets/issue-with-zk', {
+            const response = await fetch('/api/tickets/issue-with-zk', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
