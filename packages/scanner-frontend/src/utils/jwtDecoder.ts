@@ -27,7 +27,7 @@ export type JWTTicketPayload = z.infer<typeof JWTTicketPayloadSchema>;
 let cachedPublicKey: CryptoKey | null = null;
 
 /**
- * Base64URL decode function
+ * Base64URL decode function with proper UTF-8 handling
  */
 function base64UrlDecode(str: string): string {
   // Replace URL-safe characters
@@ -42,7 +42,18 @@ function base64UrlDecode(str: string): string {
     base64 += new Array(5 - pad).join('=');
   }
   
-  return atob(base64);
+  // Decode base64 to binary string
+  const binaryString = atob(base64);
+  
+  // Convert binary string to UTF-8
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  
+  // Decode as UTF-8
+  const decoder = new TextDecoder('utf-8');
+  return decoder.decode(bytes);
 }
 
 /**
