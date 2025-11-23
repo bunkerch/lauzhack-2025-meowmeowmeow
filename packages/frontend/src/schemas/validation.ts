@@ -38,7 +38,7 @@ export const PublicSignalsSchema = z.array(z.string());
  * Validates the complete QR code data structure
  */
 export const QRCodeDataSchema = z.object({
-  ticketId: z.string().uuid(),
+  ticketId: z.string(),
   proof: ProofSchema,
   publicSignals: PublicSignalsSchema.optional(),
   validFrom: z.string().datetime().or(z.string().date()),
@@ -62,7 +62,7 @@ export const RouteSchema = z.object({
  * Ticket Schema
  */
 export const TicketSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string(),
   route: z.object({
     origin: z.string().min(1),
     destination: z.string().min(1),
@@ -98,7 +98,7 @@ export const ScanResultSchema = z.object({
  */
 export const PurchaseResponseSchema = z.object({
   ticket: z.object({
-    id: z.string().uuid(),
+    id: z.string(),
     route: z.object({
       origin: z.string(),
       destination: z.string(),

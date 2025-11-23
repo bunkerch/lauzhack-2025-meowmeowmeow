@@ -382,7 +382,7 @@ function ZKPurchasePage() {
                                 <div className="flex justify-between">
                                     <span className="text-sm text-muted-foreground">Valid Until:</span>
                                     <span className="font-medium text-foreground">
-                                        {new Date(ticket.claims?.validUntil * 1000).toLocaleString()}
+                                        {new Date(ticket.claims?.exp * 1000).toLocaleString()}
                                     </span>
                                 </div>
                             </div>

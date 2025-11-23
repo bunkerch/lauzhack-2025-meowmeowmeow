@@ -31,7 +31,7 @@ export const PurchaseTicketRequestSchema = z.object({
  * Verify Ticket Request Schema
  */
 export const VerifyTicketRequestSchema = z.object({
-  ticketId: z.string().uuid(),
+  ticketId: z.string(),
   proof: ProofSchema,
   publicSignals: PublicSignalsSchema,
 });
@@ -40,7 +40,7 @@ export const VerifyTicketRequestSchema = z.object({
  * Scan Ticket Request Schema
  */
 export const ScanTicketRequestSchema = z.object({
-  ticketId: z.string().uuid(),
+  ticketId: z.string(),
   proof: ProofSchema,
   publicSignals: PublicSignalsSchema,
   validFrom: z.string().datetime().or(z.string().date()),
@@ -67,7 +67,7 @@ export const RouteIdParamSchema = z.string().regex(/^\d+$/).transform(Number);
 /**
  * Ticket ID Parameter Schema
  */
-export const TicketIdParamSchema = z.string().uuid();
+export const TicketIdParamSchema = z.string();
 
 /**
  * Lausanne -> Zurich CFF line stops
@@ -89,7 +89,7 @@ export const LAUSANNE_ZURICH_STOPS = [
  * Audit Log Request Schema
  */
 export const AuditLogRequestSchema = z.object({
-  ticketId: z.string().uuid(),
+  ticketId: z.string(),
   currentStop: z.enum(LAUSANNE_ZURICH_STOPS).optional(),
 });
 

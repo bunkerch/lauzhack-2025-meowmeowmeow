@@ -57,10 +57,30 @@ function base64UrlDecode(str: string): string {
 }
 
 /**
- * Base64URL decode to ArrayBuffer
+ * Base64URL decode to binary string (for binary data like signatures)
+ */
+function base64UrlDecodeToBinary(str: string): string {
+  // Replace URL-safe characters
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  
+  // Add padding if needed
+  const pad = base64.length % 4;
+  if (pad) {
+    if (pad === 1) {
+      throw new Error('Invalid base64 string');
+    }
+    base64 += new Array(5 - pad).join('=');
+  }
+  
+  // Decode to binary string (NO UTF-8 conversion for binary data)
+  return atob(base64);
+}
+
+/**
+ * Base64URL decode to ArrayBuffer (for binary data like signatures)
  */
 function base64UrlDecodeToBuffer(str: string): ArrayBuffer {
-  const binaryString = base64UrlDecode(str);
+  const binaryString = base64UrlDecodeToBinary(str);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
@@ -72,30 +92,43 @@ function base64UrlDecodeToBuffer(str: string): ArrayBuffer {
  * Convert PEM public key to CryptoKey
  */
 async function importPublicKey(pemKey: string): Promise<CryptoKey> {
-  // Remove PEM header/footer and whitespace
-  const pemContents = pemKey
-    .replace(/-----BEGIN PUBLIC KEY-----/, '')
-    .replace(/-----END PUBLIC KEY-----/, '')
-    .replace(/\s/g, '');
-  
-  // Decode base64
-  const binaryDer = atob(pemContents);
-  const bytes = new Uint8Array(binaryDer.length);
-  for (let i = 0; i < binaryDer.length; i++) {
-    bytes[i] = binaryDer.charCodeAt(i);
+  try {
+    // Remove PEM header/footer and whitespace
+    const pemContents = pemKey
+      .replace(/-----BEGIN PUBLIC KEY-----/, '')
+      .replace(/-----END PUBLIC KEY-----/, '')
+      .replace(/\s/g, '');
+    
+    console.log('📥 Importing RSA public key...');
+    console.log('  - PEM content length:', pemContents.length);
+    
+    // Decode base64
+    const binaryDer = atob(pemContents);
+    const bytes = new Uint8Array(binaryDer.length);
+    for (let i = 0; i < binaryDer.length; i++) {
+      bytes[i] = binaryDer.charCodeAt(i);
+    }
+    
+    console.log('  - DER bytes length:', bytes.length);
+    
+    // Import as CryptoKey
+    const key = await crypto.subtle.importKey(
+      'spki',
+      bytes.buffer,
+      {
+        name: 'RSASSA-PKCS1-v1_5',
+        hash: 'SHA-256',
+      },
+      false,
+      ['verify']
+    );
+    
+    console.log('✅ Public key imported successfully');
+    return key;
+  } catch (error) {
+    console.error('❌ Failed to import public key:', error);
+    throw error;
   }
-  
-  // Import as CryptoKey
-  return await crypto.subtle.importKey(
-    'spki',
-    bytes.buffer,
-    {
-      name: 'RSASSA-PKCS1-v1_5',
-      hash: 'SHA-256',
-    },
-    false,
-    ['verify']
-  );
 }
 
 /**
@@ -142,15 +175,22 @@ async function verifySignature(
     // Decode the signature
     const signatureBuffer = base64UrlDecodeToBuffer(signature);
     
+    console.log('🔐 Verifying JWT signature...');
+    console.log('  - Signature input length:', signatureInput.length);
+    console.log('  - Signature buffer size:', signatureBuffer.byteLength);
+    
     // Verify signature
-    return await crypto.subtle.verify(
+    const isValid = await crypto.subtle.verify(
       'RSASSA-PKCS1-v1_5',
       publicKey,
       signatureBuffer,
       data
     );
+    
+    console.log('  - Signature valid:', isValid);
+    return isValid;
   } catch (error) {
-    console.error('Signature verification error:', error);
+    console.error('❌ Signature verification error:', error);
     return false;
   }
 }
@@ -176,6 +216,8 @@ export async function verifyAndDecodeJWT(token: string): Promise<{
   error?: string;
 }> {
   try {
+    console.log('🎫 Starting JWT verification...');
+    
     // Split the JWT
     const parts = token.trim().split('.');
     if (parts.length !== 3) {
@@ -186,6 +228,9 @@ export async function verifyAndDecodeJWT(token: string): Promise<{
     }
     
     const [headerPart, payloadPart, signaturePart] = parts;
+    console.log('  - Header part length:', headerPart.length);
+    console.log('  - Payload part length:', payloadPart.length);
+    console.log('  - Signature part length:', signaturePart.length);
     
     // Get the public key
     const publicKey = await getPublicKey();
@@ -194,11 +239,14 @@ export async function verifyAndDecodeJWT(token: string): Promise<{
     const isSignatureValid = await verifySignature(headerPart, payloadPart, signaturePart, publicKey);
     
     if (!isSignatureValid) {
+      console.error('❌ Signature verification failed!');
       return {
         valid: false,
         error: 'Invalid signature - ticket may be forged',
       };
     }
+    
+    console.log('✅ Signature verified successfully!');
     
     // Decode the payload
     const decodedPayload = decodePayload(payloadPart);

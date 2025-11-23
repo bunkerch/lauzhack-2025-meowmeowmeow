@@ -45,8 +45,8 @@ function ScannerPage() {
         const payload = verificationResult.payload;
         console.log('📋 JWT Payload:', payload);
         
-        // Log the scan to audit log (non-blocking)
-        logTicketScan(payload.tid, currentStop).catch(() => {
+        // Log the scan to audit log
+        await logTicketScan(payload.tid, currentStop).catch(() => {
           // Silently handle errors - audit logging should not block the scan
         });
         
@@ -219,8 +219,8 @@ function ScannerPage() {
 
       const ticketData = validationResult.data;
 
-      // Log the scan to audit log (non-blocking)
-      logTicketScan(ticketData.ticketId, currentStop).catch(() => {
+      // Log the scan to audit log
+      await logTicketScan(ticketData.ticketId, currentStop).catch(() => {
         // Silently handle errors - audit logging should not block the scan
       });
 
@@ -320,8 +320,8 @@ function ScannerPage() {
 
         const ticketData = validationResult.data;
         
-        // Log the scan to audit log (non-blocking)
-        logTicketScan(ticketData.ticketId, currentStop).catch(() => {
+        // Log the scan to audit log
+        await logTicketScan(ticketData.ticketId, currentStop).catch(() => {
           // Silently handle errors - audit logging should not block the scan
         });
         
