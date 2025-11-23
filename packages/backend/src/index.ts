@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { ticketRoutes } from './routes/tickets';
 import { routeRoutes } from './routes/routes';
 import { verificationRoutes } from './routes/verification';
+import { auditRoutes } from './routes/audit';
 import { seedDatabase } from './database/seed';
 
 dotenv.config();
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/routes', routeRoutes);
 app.use('/api/verify', verificationRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

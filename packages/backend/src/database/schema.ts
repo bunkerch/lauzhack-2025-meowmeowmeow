@@ -22,8 +22,17 @@ export const tickets = pgTable('tickets', {
   usedAt: timestamp('used_at'),
 });
 
+export const scanAuditLogs = pgTable('scan_audit_logs', {
+  id: serial('id').primaryKey(),
+  ticketId: uuid('ticket_id').notNull(),
+  scannedAt: timestamp('scanned_at').defaultNow().notNull(),
+  currentStop: varchar('current_stop', { length: 100 }),
+});
+
 export type Route = typeof routes.$inferSelect;
 export type NewRoute = typeof routes.$inferInsert;
 export type Ticket = typeof tickets.$inferSelect;
 export type NewTicket = typeof tickets.$inferInsert;
+export type ScanAuditLog = typeof scanAuditLogs.$inferSelect;
+export type NewScanAuditLog = typeof scanAuditLogs.$inferInsert;
 

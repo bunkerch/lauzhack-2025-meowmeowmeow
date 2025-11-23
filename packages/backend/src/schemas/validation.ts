@@ -69,11 +69,36 @@ export const RouteIdParamSchema = z.string().regex(/^\d+$/).transform(Number);
  */
 export const TicketIdParamSchema = z.string().uuid();
 
+/**
+ * Lausanne -> Zurich CFF line stops
+ */
+export const LAUSANNE_ZURICH_STOPS = [
+  'Lausanne',
+  'Renens VD',
+  'Yverdon-les-Bains',
+  'Neuchâtel',
+  'Biel/Bienne',
+  'Grenchen Süd',
+  'Solothurn',
+  'Oensingen',
+  'Olten',
+  'Zurich HB',
+] as const;
+
+/**
+ * Audit Log Request Schema
+ */
+export const AuditLogRequestSchema = z.object({
+  ticketId: z.string().uuid(),
+  currentStop: z.enum(LAUSANNE_ZURICH_STOPS).optional(),
+});
+
 // Type exports for TypeScript
 export type PurchaseTicketRequest = z.infer<typeof PurchaseTicketRequestSchema>;
 export type VerifyTicketRequest = z.infer<typeof VerifyTicketRequestSchema>;
 export type ScanTicketRequest = z.infer<typeof ScanTicketRequestSchema>;
 export type VerifyOfflineRequest = z.infer<typeof VerifyOfflineRequestSchema>;
+export type AuditLogRequest = z.infer<typeof AuditLogRequestSchema>;
 export type ProofData = z.infer<typeof ProofSchema>;
 export type PublicSignals = z.infer<typeof PublicSignalsSchema>;
 
