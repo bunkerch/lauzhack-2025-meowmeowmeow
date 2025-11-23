@@ -10,6 +10,10 @@ coverage
 .idea
 *.tsbuildinfo
 
+# JWT RSA keys (development)
+.keys/
+**/.keys/
+
 # Drizzle
 drizzle/
 
