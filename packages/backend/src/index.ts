@@ -4,7 +4,10 @@ import dotenv from 'dotenv';
 import { ticketRoutes } from './routes/tickets';
 import { routeRoutes } from './routes/routes';
 import { verificationRoutes } from './routes/verification';
+import { paymentRoutes } from './routes/payment';
 import { seedDatabase } from './database/seed';
+import { paymentService } from './services/payment-service';
+import { initializeFieldEncoding } from './utils/field-encoding';
 
 dotenv.config();
 
@@ -21,6 +24,7 @@ app.use(express.json());
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/routes', routeRoutes);
 app.use('/api/verify', verificationRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -30,12 +34,19 @@ app.get('/health', (req, res) => {
 // Start server
 async function start() {
   try {
+    // Initialize cryptographic utilities
+    console.log('⚙️  Initializing cryptographic libraries...');
+    await initializeFieldEncoding();
+    await paymentService.initialize();
+    
     // Seed database with sample data
     await seedDatabase();
     console.log('✅ Database ready');
     
     app.listen(PORT, () => {
       console.log(`🚀 Backend server running on http://localhost:${PORT}`);
+      console.log(`   - Ticket Backend: http://localhost:${PORT}/api/tickets`);
+      console.log(`   - Payment Service: http://localhost:${PORT}/api/payment`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

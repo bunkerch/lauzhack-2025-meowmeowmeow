@@ -164,13 +164,19 @@ function TicketPage() {
           <div className="bg-primary/5 border border-primary/10 p-6 rounded-xl">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                <span className="text-primary font-bold">🔒</span>
+                <span className="text-primary font-bold">
+                  {'legacy' in ticket.proof ? '🎫' : '🔒'}
+                </span>
               </div>
-              <h3 className="text-lg font-bold">Zero-Knowledge Proof Details</h3>
+              <h3 className="text-lg font-bold">
+                {'legacy' in ticket.proof ? 'Ticket Details' : 'Zero-Knowledge Proof Details'}
+              </h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-              Your ticket is protected using cryptographic proofs. The system verifies
-              your ticket's validity without accessing or storing any personal information.
+              {'legacy' in ticket.proof 
+                ? 'This is a standard ticket. For enhanced privacy, use the ZK Purchase flow.'
+                : 'Your ticket is protected using zero-knowledge cryptographic proofs. The system verifies your ticket\'s validity without accessing or storing any personal information.'
+              }
             </p>
             <details className="group">
               <summary className="cursor-pointer text-sm text-primary font-medium hover:text-primary/80 transition-colors select-none flex items-center gap-2">

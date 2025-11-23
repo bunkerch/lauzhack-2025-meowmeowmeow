@@ -20,7 +20,9 @@
   },
   "devDependencies": {
     "circomlib": "^2.0.5",
-    "concurrently": "^8.2.2"
+    "circomlibjs": "^0.1.7",
+    "concurrently": "^8.2.2",
+    "poseidon-lite": "^0.3.0"
   },
   "engines": {
     "node": ">=18.0.0",

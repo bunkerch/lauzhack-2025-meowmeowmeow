@@ -3,15 +3,100 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../database/db';
 import { routes, tickets } from '../database/schema';
 import { eq } from 'drizzle-orm';
-import { generateTicketProof } from '../zk/proof-generator';
 import { 
   PurchaseTicketRequestSchema, 
   TicketIdParamSchema,
   type PurchaseTicketRequest 
 } from '../schemas/validation';
 import { z } from 'zod';
+import { ticketService, type QuoteRequest } from '../services/ticket-service';
+import { verifyPaymentProof, type ZKProofRequest } from '../services/zk-verifier';
+import { signTicketJwt } from '../services/jwt-signer';
 
 export const ticketRoutes: ExpressRouter = Router();
+
+/**
+ * POST /api/tickets/quote
+ * 
+ * Get a journey quote (according to INSTRUCTIONS.md spec).
+ * Returns quoteId, price, and journey details.
+ */
+ticketRoutes.post('/quote', async (req, res) => {
+  try {
+    const quoteRequest: QuoteRequest = {
+      origin: req.body.origin,
+      destination: req.body.destination,
+      travelDate: req.body.travelDate || new Date().toISOString(),
+      ticketType: req.body.ticketType || 'single'
+    };
+
+    if (!quoteRequest.origin || !quoteRequest.destination) {
+      return res.status(400).json({ error: 'Origin and destination are required' });
+    }
+
+    const quote = await ticketService.createQuote(quoteRequest);
+    res.json(quote);
+
+  } catch (error) {
+    console.error('Quote generation error:', error);
+    res.status(500).json({ error: (error as Error).message || 'Failed to generate quote' });
+  }
+});
+
+/**
+ * POST /api/tickets/issue-with-zk
+ * 
+ * Issue a ticket after verifying a ZK payment proof (according to INSTRUCTIONS.md spec).
+ * Returns a signed JWT ticket.
+ */
+ticketRoutes.post('/issue-with-zk', async (req, res) => {
+  try {
+    const zkRequest: ZKProofRequest = {
+      quoteId: req.body.quoteId,
+      priceCents: req.body.priceCents,
+      root: req.body.root,
+      proof: req.body.proof,
+      publicSignals: req.body.publicSignals
+    };
+
+    // Verify the ZK proof
+    const verificationResult = await verifyPaymentProof(zkRequest);
+
+    if (!verificationResult.valid) {
+      return res.status(400).json({ 
+        error: 'Invalid ZK proof',
+        details: verificationResult.error
+      });
+    }
+
+    // Get the quote
+    const quote = ticketService.getQuote(zkRequest.quoteId);
+    if (!quote) {
+      return res.status(404).json({ error: 'Quote not found or expired' });
+    }
+
+    // Verify price matches quote
+    if (quote.priceCents !== zkRequest.priceCents) {
+      return res.status(400).json({ error: 'Price mismatch with quote' });
+    }
+
+    // Create ticket claims
+    const claims = ticketService.createTicketClaims(quote);
+
+    // Sign the ticket
+    const token = signTicketJwt(claims);
+
+    res.json({ 
+      token,
+      ticketId: claims.tid,
+      claims
+    });
+
+  } catch (error) {
+    console.error('Ticket issuance error:', error);
+    res.status(500).json({ error: (error as Error).message || 'Failed to issue ticket' });
+  }
+});
 
 // Purchase a ticket
 ticketRoutes.post('/purchase', async (req, res) => {
@@ -56,23 +141,18 @@ ticketRoutes.post('/purchase', async (req, res) => {
         break;
     }
 
-    // Generate ZK proof for the ticket
-    const { proof, publicSignals } = await generateTicketProof({
-      ticketId,
-      routeId,
-      validFrom: validFrom.getTime(),
-      validUntil: validUntil.getTime(),
-    });
-
-    // Store ticket using Drizzle
+    // Note: This is the LEGACY purchase flow (without ZK proofs)
+    // For ZK-based anonymous tickets, use /issue-with-zk endpoint
+    
+    // Store ticket using Drizzle (no ZK proof for legacy flow)
     const newTicket = await db.insert(tickets).values({
       id: ticketId,
       routeId,
       ticketType,
       validFrom,
       validUntil,
-      proofData: proof,
-      publicSignals,
+      proofData: { legacy: true }, // Legacy tickets don't have ZK proofs
+      publicSignals: [],
     }).returning();
 
     const ticket = newTicket[0];
@@ -96,6 +176,40 @@ ticketRoutes.post('/purchase', async (req, res) => {
   } catch (error) {
     console.error('Error purchasing ticket:', error);
     res.status(500).json({ error: 'Failed to purchase ticket' });
+  }
+});
+
+/**
+ * POST /api/tickets/validation/scan-log
+ * 
+ * Controller endpoint for logging ticket scans and detecting double-use.
+ */
+ticketRoutes.post('/validation/scan-log', async (req, res) => {
+  try {
+    const { ticketId, controllerId, tripId, scanTime } = req.body;
+
+    if (!ticketId) {
+      return res.status(400).json({ error: 'Ticket ID required' });
+    }
+
+    console.log(`📱 Scan logged: Ticket ${ticketId} by controller ${controllerId || 'unknown'}`);
+
+    // In production, this would:
+    // 1. Check if ticket exists and is valid
+    // 2. Count previous scans
+    // 3. Flag suspicious activity
+
+    // For PoC, just return success
+    res.json({
+      status: 'VALID',
+      message: 'Ticket scan logged successfully',
+      ticketId,
+      scanTime: scanTime || new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Scan log error:', error);
+    res.status(500).json({ error: 'Failed to log scan' });
   }
 });
 

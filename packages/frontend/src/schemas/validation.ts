@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 /**
- * ZK Proof Schema
+ * ZK Proof Schema (Groth16)
  * Validates the structure of a zero-knowledge proof
  */
-export const ProofSchema = z.object({
+export const Groth16ProofSchema = z.object({
   pi_a: z.array(z.string()).min(3),
   pi_b: z.array(z.array(z.string()).length(2)).length(3),
   pi_c: z.array(z.string()).min(3),
@@ -13,10 +13,25 @@ export const ProofSchema = z.object({
 });
 
 /**
+ * Legacy Proof Schema
+ * For tickets purchased without ZK proofs
+ */
+export const LegacyProofSchema = z.object({
+  legacy: z.literal(true),
+});
+
+/**
+ * Proof Schema (Union of ZK and Legacy)
+ * Accepts both real ZK proofs and legacy tickets
+ */
+export const ProofSchema = z.union([Groth16ProofSchema, LegacyProofSchema]);
+
+/**
  * Public Signals Schema
  * Array of numeric strings representing public signals from the proof
+ * Can be empty for legacy tickets
  */
-export const PublicSignalsSchema = z.array(z.string()).min(1);
+export const PublicSignalsSchema = z.array(z.string());
 
 /**
  * QR Code Data Schema
@@ -25,7 +40,7 @@ export const PublicSignalsSchema = z.array(z.string()).min(1);
 export const QRCodeDataSchema = z.object({
   ticketId: z.string().uuid(),
   proof: ProofSchema,
-  publicSignals: PublicSignalsSchema,
+  publicSignals: PublicSignalsSchema.optional(),
   validFrom: z.string().datetime().or(z.string().date()),
   validUntil: z.string().datetime().or(z.string().date()),
   routeId: z.number().int().nonnegative(),
@@ -57,9 +72,9 @@ export const TicketSchema = z.object({
   validFrom: z.string().datetime().or(z.string().date()),
   validUntil: z.string().datetime().or(z.string().date()),
   price: z.string(),
-  isUsed: z.boolean(),
+  isUsed: z.boolean().optional(),
   proof: ProofSchema,
-  publicSignals: PublicSignalsSchema,
+  publicSignals: PublicSignalsSchema.optional(),
 });
 
 /**
@@ -99,6 +114,8 @@ export const PurchaseResponseSchema = z.object({
 });
 
 // Type exports for TypeScript
+export type Groth16Proof = z.infer<typeof Groth16ProofSchema>;
+export type LegacyProof = z.infer<typeof LegacyProofSchema>;
 export type ProofData = z.infer<typeof ProofSchema>;
 export type PublicSignals = z.infer<typeof PublicSignalsSchema>;
 export type QRCodeData = z.infer<typeof QRCodeDataSchema>;
