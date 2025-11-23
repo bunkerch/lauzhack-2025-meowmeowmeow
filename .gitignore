@@ -31,3 +31,5 @@ circuits/input.json
 # Keep verification_key.json (small, needed for production)
 # circuits/verification_key.json
 
+*.crt
+*.key

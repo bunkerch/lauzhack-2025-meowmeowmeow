@@ -47,7 +47,7 @@ async function start() {
     await seedDatabase();
     console.log('✅ Database ready');
     
-    app.listen(PORT, () => {
+    app.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`🚀 Backend server running on http://localhost:${PORT}`);
       console.log(`   - Ticket Backend: http://localhost:${PORT}/api/tickets`);
       console.log(`   - Payment Service: http://localhost:${PORT}/api/payment`);

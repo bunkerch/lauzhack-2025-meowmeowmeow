@@ -10,6 +10,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 5173,
     proxy: {
       '/api': {
@@ -17,6 +18,7 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    allowedHosts: ['lauzhack.tail11d06.ts.net'],
   },
 })
 

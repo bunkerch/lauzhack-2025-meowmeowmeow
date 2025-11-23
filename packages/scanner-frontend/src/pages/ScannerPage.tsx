@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Scan, CheckCircle, XCircle, Loader2, WifiOff, Wifi, Zap, History, Clock } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Scan, CheckCircle, XCircle, Loader2, WifiOff, Wifi, Zap, History, Clock, Camera, X } from 'lucide-react';
+import jsQR from 'jsqr';
 import { verifyTicketOffline } from '../utils/zkVerifier';
 import { getAuthHeaders } from '../config/auth';
 import { logTicketScan, getAuditLogs, LAUSANNE_ZURICH_STOPS, type LausanneZurichStop, type AuditLogEntry } from '../utils/auditLogger';
@@ -22,6 +23,140 @@ function ScannerPage() {
   const [currentStop, setCurrentStop] = useState<LausanneZurichStop | undefined>(undefined);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [loadingAuditLogs, setLoadingAuditLogs] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [cameraRequested, setCameraRequested] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanIntervalRef = useRef<number | null>(null);
+
+  // Define callback functions first
+  const stopCamera = useCallback(() => {
+    console.log('🛑 Stopping camera...');
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraOpen(false);
+    setCameraRequested(false);
+  }, []);
+
+  const scanQRCode = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) {
+      return;
+    }
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    if (!context || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    
+    if (code && code.data) {
+      // Found QR code
+      console.log('✅ QR Code detected!', code.data.substring(0, 50) + '...');
+      setQrData(code.data);
+      stopCamera();
+    }
+  }, [stopCamera]);
+
+  const initializeCameraStream = useCallback(async () => {
+    try {
+      console.log('📷 Requesting camera access...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment', // Use back camera on mobile
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      
+      console.log('✅ Camera access granted');
+      
+      if (videoRef.current && isCameraOpen) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        
+        // Wait for video to be ready before starting scan
+        videoRef.current.onloadedmetadata = () => {
+          console.log('🎥 Video loaded, starting QR scan...');
+          console.log('📐 Video dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+          console.log('🖼️ Canvas element:', canvasRef.current ? 'Found' : 'NOT FOUND');
+          videoRef.current?.play();
+          // Start scanning for QR codes
+          scanIntervalRef.current = window.setInterval(() => {
+            scanQRCode();
+          }, 300); // Scan every 300ms
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error accessing camera:', error);
+      alert('Unable to access camera. Please check your browser permissions.');
+      setIsCameraOpen(false);
+      setCameraRequested(false);
+    }
+  }, [isCameraOpen, scanQRCode]);
+
+  const startCamera = () => {
+    console.log('🎬 Camera start requested');
+    setIsCameraOpen(true);
+    setCameraRequested(true);
+  };
+
+  const toggleCamera = () => {
+    console.log('🔄 Toggle camera, current state:', isCameraOpen);
+    if (isCameraOpen) {
+      stopCamera();
+    } else {
+      startCamera();
+    }
+  };
+
+  // Detect if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsMobile(isMobileDevice || hasTouch);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Clean up camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  // Effect to start camera when requested and video element is ready
+  useEffect(() => {
+    if (cameraRequested && isCameraOpen && videoRef.current) {
+      console.log('📷 Starting camera stream...');
+      initializeCameraStream();
+      setCameraRequested(false);
+    }
+  }, [cameraRequested, isCameraOpen, initializeCameraStream]);
 
   const handleJWTTicket = async (jwtToken: string) => {
     try {
@@ -408,14 +543,68 @@ function ScannerPage() {
         <CardContent>
           <form onSubmit={handleScan} className="space-y-6">
             <div className="space-y-3">
-              <Label htmlFor="qrData" className="text-sm font-medium">Paste QR Code Content</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="qrData" className="text-sm font-medium">Paste QR Code Content</Label>
+                {isMobile && (
+                  <Button
+                    type="button"
+                    onClick={toggleCamera}
+                    variant={isCameraOpen ? "destructive" : "outline"}
+                    size="sm"
+                    disabled={scanning}
+                    className="gap-2"
+                  >
+                    {isCameraOpen ? (
+                      <>
+                        <X size={16} />
+                        Close Camera
+                      </>
+                    ) : (
+                      <>
+                        <Camera size={16} />
+                        Scan QR
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              
+              {isCameraOpen && (
+                <div className="relative rounded-lg overflow-hidden border-2 border-primary bg-black aspect-video">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                  <canvas 
+                    ref={canvasRef} 
+                    style={{ display: 'none' }}
+                  />
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-0 border-2 border-primary/50 m-8 rounded-lg">
+                      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg"></div>
+                      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg"></div>
+                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg"></div>
+                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg"></div>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                    <p className="text-white text-sm text-center font-medium">
+                      Position QR code within the frame
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               <Textarea
                 id="qrData"
                 value={qrData}
                 onChange={(e) => setQrData(e.target.value)}
                 placeholder='Paste QR code data here (JWT token or JSON format)'
-                disabled={scanning}
-                autoFocus
+                disabled={scanning || isCameraOpen}
+                autoFocus={!isMobile}
                 rows={6}
                 className="font-mono text-xs resize-none"
               />
